@@ -1,4 +1,3 @@
-import json
 import pprint
 import pdb
 import random
@@ -10,49 +9,60 @@ import matplotlib.patches as pch
 
 
 class Record:
-    """ This class serves as an interface of formulation
-    of vector items for the optimizer, such that the optimizer
-    can choose item with respect to its
-    - feature
-    - value
-    and so on.
-    The classes who implement this class's methods can contain
-    further properties for the mutation(application/reversion)
-    of corresponded data model. """
+    """This class serves as an interface between model and general
+    optimizer scheme, such that the optimizer can choose item with
+    respect to its feature or value.
+
+    The classes who implement this class's methods can contain further
+    properties for the action(mutation/application/reversion) of
+    corresponded data model.
+
+    """
+
     def __init__(self, feature, value):
         self._feature = feature
         self._value = value
+
     def __repr__(self):
         return 'Feature: %s;  Value: %8.3f' % (self.feature, self.value)
+
     def __getitem__(self, i):
         """ Implement the interface of reading table contents.
         For the optimizer, a vector of motions are indexed by
         0 with 'id' and 1 with 'value'. """
-        if i == 0: return self.feature
-        else: return self.value
+        if i == 0:
+            return self.feature
+        else:
+            return self.value
+
     def __lt__(self, other):
-        """ Ordability:
-        `self.value may be a tuple. """
+        """Ordability: `self.value1 may be a tuple. """
+        assert isinstance(other, Record), 'Compare only Record to Record.'
         return self.value < other.value
+
     def __le__(self, other):
         return self.value <= other.value
+
     def __gt__(self, other):
         return other < self
+
     def __ge__(self, other):
         return other <= self
 
     @property
     def feature(self):
         return self._feature
+
     @property
     def value(self):
         return self._value
 
 
-
 class Motion(Record):
-    """ Extending a record class, which is to be accepted by
-    the optimizer. """
+    """Extending a record class, which is to be accepted by the optimizer.
+
+    """
+
     def __init__(self, rect, rect_paren, child, rotated, params):
         super(Motion, self).__init__(
             rect.id,
@@ -67,75 +77,63 @@ class Motion(Record):
             # 3. Area of moved rectangle;
             # 4. Whether inducing a new subhanger;
             # ...
-            params[0] + params[1] + params[2] / 100.0)
+            # params[0] + params[1] + params[2] / 100.0
+            params
+        )
         self.rect = rect
         self.rect_paren = rect_paren
         self.child = child
         self.rotated = rotated
         self.params = params
+
     def __repr__(self):
         return 'R{0} TO R{1}.child:{2}, Params: {3}, Rotd: {4}'.format(
             self.rect.id, self.rect_paren.id, self.child,
             self.params, self.rotated)
+
     @property
     def target_turning(self):
         return self.rect_paren.turning.children[self.child]
 
 
 class Turning:
-    """
-    `Turning is a custom type as component of the outline of stacked boxes.
-    It describes a vertical walk into and then a horizontal walk out of a
-    turning point of outline (a wall and a platform/ceiling), which can
-    be of four possibilities:
+    """`Turning` is a custom type as component of the outline of stacked
+    boxes.  It describes a vertical walk into and then a horizontal
+    walk out of a turning point of outline (a wall and a
+    platform/ceiling), which can be of four possibilities:
 
-    > ( 0,-y) in, (+x, 0) out: L-Type (most common)
-        -> A left wall down, a platform rightwards
-    > ( 0,+y) in, (+x, 0) out: F-Type
-        -> A right wall up, a platform rightwards
-    > ( 0,-y) in, (-x, 0) out: D-Type
-        -> A left wall down, a ceiling leftwards
-    > ( 0,+y) in, (-x, 0) out: T-Type (only for hangers in this model)
-        -> A right wall up, a ceiling rightwards
+    > downwards in, rightwards out: L-Type (most common)
 
-    Each `Turning maintains not only defines a (x, y) position `p, but also
-    maintains information of extensions, which are a vertical and a
-    horizontal radiating line crossing at `p. This information tells that
-    if a rectangle box is tend to be positioned on a platform, it can slide
-    left- or rightwards (here only leftwards is considered) and how far it
-    can slide until it contacts a left wall. Based on such characteristics,
-    the four extension of the four turning types are:
+    > upwards in, rightwards out: F-Type
+
+    > downwards in, leftwards out: D-Type
+
+    > upwards in, leftwards out: T-Type (only for hangers in this
+      model)
+
+    Each `Turning` maintains coordinates p(x, y) as well as four
+    pointers L, R, U and D with each of them points a turnings which
+    can be 'shoot' with an arrow radiating from p. Each type of
+    turning has specified arrows pointing to itself. In the following
+    table, '?' means non-self target turning pointed by the pointer.
 
     ----------   L     R     U     D    --------
-      L-Type    self   -     -    self
-      F-Type     -     -    NONE  self
-      D-Type    self   -     -     -
-      T-Type     -    self  self   -
+      L-Type    self   ?     ?    self
+      F-Type     ?     ?    NONE  self
+      D-Type    self   ?     ?     ?
+      T-Type     ?    self  self   ?
+    --------------------------------------------
+    
+    The 'Chain' of turnings exactly represent the 'outline' of the
+    rectangle stack.
+    
+    A scene model maintains a set of chains, each denoted by a
+    'hanger' turning.
 
-    Consider only platform can be used to position the rectangle boxes.
-    Only L-Type and F-Type are available for that. Each time when
-    positioning a turning, a rectangle brings two new turnings and merge
-    them into the current outline.
-    If such turning is L-Type, then two new turnings as the upper left
-    corner and the lower right corner are generated and chained. The
-    positioning turning in the outline are substituted by the two.
-    Else if such turning is F-Type, then the previous outline is then
-    broken into two after merging the two new turnings. The positioning
-    turning becomes a new hanger hanging the left wall turning on
-    its left extension.
+    """
 
-    After merging a rectangle into the outline, an update of extensions
-    along both direction of outline-chain starting from new merged turnings
-    are needed.
-
-    *. To determine whether a platform (either from L-Type or F-Type) can
-    hold a rectangle box without overlapping other stacked boxes, the
-    upper extensions of this platform's left- and right extensions are
-    used. Due to such rule, since the up-extension of F-Type is not used,
-    it needs not maintain/updating.
-
-"""
     counter = 0
+
     def __init__(self, x, y, parent, hanger_pool=None, assoc_rect=None):
         self.x = x
         self.y = y
@@ -156,10 +154,12 @@ class Turning:
         self.id = Turning.counter
         Turning.counter += 1
         return
+
     def __repr__(self):
         return \
             'Hg_%s[%2d, %2d]' % (self.id, self.x, self.y) if self.is_hanger else \
             "%s_%s[%2d, %2d]" % (self.bending, self.id, self.x, self.y)
+
     def __getitem__(self, n):
         i = 0
         p = self
@@ -167,14 +167,17 @@ class Turning:
             p = p.fllw
             i += 1
         return p
+
     def __call__(self, n):
         for t in self.cycle:
             if t.id == n: return t
         assert 0, 'No such turning in %s`s cycle! ID:%s' % n
 
     class Frame:
-        """ For validation of some merge with new rectangle
-        at some turning. """
+        """For validation of some merge with new rectangle at some
+        turning.
+
+        """
         def __init__(self, tng):
             self.turning = tng
             self.x1 = tng.x_pos
@@ -185,19 +188,26 @@ class Turning:
             self.y2 = min(
                 tng.slide_l().u_ext.y,
                 tng.r_ext.u_ext.y if not tng.r_ext.is_hanger else tng.r_ext.y)
+
         def __repr__(self):
             return "Fm[%4d * %4d]|[xg=%4d, yg=%4d]@%s" % \
                 (self.b, self.h, self.x_gap, self.y_gap, self.turning)
+
         @property
         def b(self): return self.x2 - self.x1
+
         @property
         def h(self): return self.y2 - self.y1
+
         @property
         def x_gap(self): return self.turning.x - self.x1
+
         @property
         def y_gap(self): return self.turning.y - self.y1
+
         @property
         def area(self): return self.b * self.h
+
         def fill_rest_of(self, rect):
             """ Returns either False or fill rate. """
             if self.x_gap < rect.b <= self.b and \
@@ -208,6 +218,7 @@ class Turning:
     @staticmethod
     def reset_counter():
         Turning.counter = 0
+
     @staticmethod
     def initialize_hanger(x_min, y_min, x_max, y_max):
         Turning.reset_counter()
@@ -233,14 +244,16 @@ class Turning:
     @property
     def index_as_child(self):
         return self.parent.children.index(self)
+
     @property
     def x_pos(self):
         if self.bending is 'T' and self.bending_before is 'F':
-                return self.fllw.x
+            return self.fllw.x
         elif self.bending is 'F':
             return self.slide_l().x
         else:
             return self.x
+
     @property
     def y_pos(self):
         if self.bending is 'T' and self.bending_before is 'D':
@@ -249,13 +262,16 @@ class Turning:
             return self.slide_d().y
         else:
             return self.y
+
     @property
     def xy_pos(self):
         return (self.x_pos, self.y_pos)
+
     @property
     def xy(self):
         """ Representation of turning as its point coordinates. """
         return (self.x, self.y)
+
     @property
     def bending(self):
         # !! Strictly
@@ -289,6 +305,7 @@ class Turning:
             elif p in seen:
                 assert False, "Wrong cycle: %s" % str(c)
         return c
+
     @property
     def cycle_rev(self):
         c = [] ; seen = set()
@@ -303,6 +320,7 @@ class Turning:
                 print("Wrong cycle: %s" % str(c))
                 return c
         return c
+
     @property
     def bounding(self):
         x = y = 0
@@ -311,6 +329,7 @@ class Turning:
                 if tng.x > x: x = tng.x
                 if tng.y > y: y = tng.y
         return (x, y)
+
     @property
     def bounder_turning_pair(self):
         """
@@ -323,6 +342,7 @@ class Turning:
             if tng.x > bnd_tng_x.x: bnd_tng_x = tng
             if tng.y > bnd_tng_y.y: bnd_tng_y = tng
         return (bnd_tng_x, bnd_tng_y)
+
     @property
     def exts(self):
         """Inspect the extents of this turning."""
@@ -336,18 +356,20 @@ class Turning:
         pat = "\t".join(["%s"] * 5) + "\n"
         return pat % tuple(t.id for t in
                           [self, self.l_ext, self.r_ext, self.u_ext, self.d_ext])
+
     @property
     def is_hanger(self):
         return self.bending is 'T' and self.prev.bending is not 'T'
+
     @property
     def frame(self):
-        """
-        Return a conservative available size of some platform.
-        This is dependent to the ways of merging rectangles into
-        outline, i.e. whether merge-corner, merge-floor or
-        merge-wall, etc.
+        """Return a conservative available size of some platform.  This is
+        dependent to the ways of merging rectangles into outline,
+        i.e. whether merge-corner, merge-floor or merge-wall, etc.
+
         """
         return Turning.Frame(self)
+
     @property
     def state_table(self):
         tbl = [tuple(map(lambda p: (p.x, p.y),
@@ -356,11 +378,12 @@ class Turning:
                for p in self.cycle[1:]
         ]
         return tbl
+
     @property
     def descedants(self):
-        """ Underlined topological sort.
-        All descedants are PARENT turnings,
+        """Underlined topological sort.  All descedants are PARENT turnings,
         which lie not on the outline.
+
         """
         que_trav = [self] ; stk_split = []
         while que_trav:
@@ -387,6 +410,7 @@ class Turning:
             p = p.l_ext.prev
         # IF p.l_ext is 'L' and p.l_ext.y == p.y, then return the p.l_ext
         return p.l_ext          # Only slide, not iterate!
+
     def slide_d(self, until=-1):
         p = self
         # while p.bending is 'D' and \
@@ -480,18 +504,16 @@ class Turning:
         if not self.mergable(rect):
             print('Failed merging %s at %s ' % (rect, self))
             pdb.set_trace()
-        # Reference to positionating.
+
         rect.put_at(self)
         self.assoc_rect = rect
-        # print('try merge', rect, 'to', self)
-        # Use x_pos ans y_pos !!
-        # Constructing turning irrelevant of position of Rectangle,
-        # i.e. Rectangle is only for representative/secondary
-        # purposes.
+
         nt1 = Turning(self.x_pos, self.y_pos + rect.h, self)
         nt2 = Turning(self.x_pos + rect.b, self.y_pos, self)
         nt1.parent = nt2.parent = self
+
         self.children.extend([nt1, nt2])
+
         # General chaining.
         if self.bending is 'L':
             nt2.chain_next(self.fllw)
@@ -505,6 +527,7 @@ class Turning:
             nt2.chain_next(self.slide_d().fllw)
             nt1.chain_next(nt2)
             self.prev.chain_next(nt1)
+
         # Update.
         if update:
             nt2.l_ext = nt2
@@ -528,6 +551,7 @@ class Turning:
                 nt1,
                 max(nt2.x, nt2.fllw.x),
                 self.slide_l().u_ext)
+
         if self.bending is 'L':
             self.bending_before = 'L'
             # self.l_ext.bending_before = 'L' # Handle when self.l_ext.xy = self.xy
@@ -555,11 +579,11 @@ class Turning:
                 self._update_down_up(self.fllw, self.x, self)
         else: pass
 
-        # For error debugging.
-        # After merging all extents must be in the same cycle
-        # except the hanger.
+        # For error debugging. After merging, all extents must be in
+        # the same cycle except the hanger.
         Turning.check_cycle(self, nt1.prev, rect)
-        if self.is_hanger: Turning.check_cycle(self, self, rect)
+        if self.is_hanger:
+            Turning.check_cycle(self, self, rect)
         return
 
     def merge_rotate(self, rect):
@@ -588,13 +612,14 @@ class Turning:
 
     @property
     def splittable(self):
-        """
-        `self must be a PARENT.
-        A rectangle at `self can only be splitted IFF two children
-        of `self are outline-turnings, i.e. both of them have no
-        children, and also they're consecutive.
+        """`self must be a PARENT.  A rectangle at `self can only be splitted
+        IFF two children of `self are outline-turnings, i.e. both of
+        them have no children and also they're consecutive in the
+        chaining.
+
         If the condition above doesn't hold, then only cascaded split
-        at `self is possible.
+        at `self` is possible.
+
         """
         if self.children:
             nt1, nt2 = self.children
@@ -602,6 +627,7 @@ class Turning:
             # are not in the same cycle, thus not splittable!
             return \
                 nt1.fllw is nt2 and \
+                nt2.prev is nt1 and \
                 nt1.children == nt2.children == [] # and \
                 # nt1.x is self.x_pos and \
                 # nt2.y is self.y_pos
@@ -609,21 +635,25 @@ class Turning:
             return False
 
     def split(self, update=True):
-        """
-        Assume `self is not actually on the outline, but marks the
+        """Assume `self` is not actually on the outline, but marks the
         position of some rectangle, i.e. being referenced by such
-        rectangle's `turning property.
+        rectangle's `turning` property.
+
         For a splittable internal turning, its two children are just
-        two consecutive turnings along the outline (if it's legal
-        to split the rectangle here) and both of them have no children.
+        two consecutive turnings along the outline (if it is legal to
+        split the rectangle here) and both of them have no children.
+
         """
-        # print('Ja split again!!')
         assert self.splittable
+
         ot = self
         t1, t2 = ot.children
-        # Reset hanger before chaining! Thus a hanger is not
-        # valid with its exts.
+
+        # Reset hanger before chaining! Thus a hanger is not valid
+        # with its exts.
+        #
         # Seperated from inversed process of _update_hanged!
+
         if ot.bending_before is 'L': #ot.d_ext is ot.l_ext is ot:
             assert ot.bending is 'L', ot + '\n' + ot.cycle
             ot.u_ext = t1.u_ext
@@ -632,6 +662,7 @@ class Turning:
             ot.chain_next(t2.fllw)
             Turning._update_left_right(ot, t1.y, t2.r_ext)
             Turning._update_down_up   (ot, t2.x, t1.u_ext)
+
         elif ot.bending_before is 'F': # ot.d_ext is ot:
             t1.prev.chain_next(ot.fllw)
             ot.chain_next(t2.fllw)
@@ -641,6 +672,7 @@ class Turning:
             Turning._update_left_right(ot, t1.y, t2.r_ext)
             Turning._update_down_up   (ot.slide_l(), t2.x, t1.u_ext)
             ot.hanger_pool.remove(ot)
+
         elif ot.bending_before is 'D': # ot.l_ext is ot:
             ot.prev.chain_next(t2.fllw) # Mind order of chaining.
             t1.prev.chain_next(ot)
@@ -653,6 +685,7 @@ class Turning:
             # ot.r_ext is to be updated
             # import pdb ; pdb.set_trace()
             ot.hanger_pool.remove(ot)
+
         else:
             assert False, "%s Illegal merged. " % self
 
@@ -680,11 +713,11 @@ class Turning:
         # leaves = {leaf.assoc_rect for leaf in self.}
         return
 
-    pass
-
 
 class Rectangle:
+
     x_dflt = 0 ; y_dflt = 0
+
     def __init__(self, i, b, h):
         self.b = b
         self.h = h
@@ -693,6 +726,7 @@ class Rectangle:
         self.turning_before = None
         self.is_rotated = False
         self.id = i
+
     def __repr__(self):
         return "Rt_%s[%s * %s]@%s" % (self.id, self.b, self.h, self.turning)
 
@@ -820,17 +854,15 @@ class Rectangle:
         fill = "#%02X%02X%02X" % (red, grn, blu)
         return fill
 
-    pass
-
 
 class Scene:
+    """This object wraps a `hanger object, encapsulates method for state
+    transferring in order to interface with generalized algorithms.
+    This is also the object which plays the role of data model of
+    corresponded problems and interfaces with outside.
+
     """
-    This object wraps a `hanger object, encapsulates method for
-    state transferring in order to interface with generalized
-    algorithms.
-    This is also the object which plays the role of data model
-    of corresponded problems and interfaces with outside.
-    """
+
     def __init__(self, x_max=1000, y_max=1000):
         self.main_hanger = Turning.initialize_hanger(0, 0, x_max, y_max)
         self.origin = self.main_hanger.fllw
@@ -921,12 +953,15 @@ class Scene:
         return [_
                 for h in self.hanger_col
                 for _ in h.cycle ]
+
     @property
     def turning_xys(self):
         return [(tng.x, tng.y) for tng in self.main_hanger.cycle]
+
     @property
     def rect_xyxys(self):
         return [r.xyxy for r in self.rects]
+
     @property
     def outlines(self):
         def _outline_plist(hng):
@@ -936,6 +971,7 @@ class Scene:
                 outl_ps.append((tng.fllw.x, tng.y))
             return outl_ps
         return [_outline_plist(hng) for hng in self.hanger_col]
+
     @property
     def object_value(self):
         x, y = self.main_hanger.bounding
@@ -956,24 +992,29 @@ class Scene:
         return fill
 
     def _assess_one_cycle_with_rect(self, hg, rect):
-        """
-        Suppose `rect is splitted out.
-        Find feasible merge of `rect into outline, associated with
-        new bounding box values if merged thereby.
-        `rect bybrings the previous turning out of which it was
-        splitted.
-        Temp var `tbl holds some `tng and associated assessment of
+        """Suppose `rect` is splitted out.  Find feasible merge of `rect` into
+        outline, associated with new bounding box values if merged
+        thereby.  `rect` bybrings the previous turning out of which it
+        was splitted.
+
+        Temp var `tbl` holds some `tng` and associated assessment of
         merging rect there i.e.,
+
             - (rect, rect_parent, child_num, rotated, (qualification ...))
         the former is a pointer to `Turning object and the
         latter appears in a comparable structure,
         in order to qualify some possible merging action at
         `tng, e.g.
+
             - (new_bounding_area, )
+
             - (new_bounding_area, fill_rest, other_qualification, )
+
             - ...
+
         Also some form of weighted function can be applied for
         assessment.
+
         """
         tbl = []
         # `self.bounding is dynamic.
@@ -986,12 +1027,17 @@ class Scene:
                 n_bnd_y = max(tng.y_pos + rect.h, bnd_y)
                 n_bnd_a = n_bnd_x * n_bnd_y
                 fill_rest = tng.frame.fill_rest_of(rect)
-                # print('Motion for ', tng)
                 tbl.append(
                     Motion(rect, tng.parent.assoc_rect,
                                  tng.parent.children.index(tng),
                                  False,
-                                 (n_bnd_a, tng.x + tng.y, fill_rest)))
+                           # (n_bnd_a, tng.x + tng.y, fill_rest),
+                           # (n_bnd_a, fill_rest, (tng.x + tng.y)**2, ),
+                           # (n_bnd_a + (tng.x + tng.y), fill_rest),
+                           # (n_bnd_x + n_bnd_y, fill_rest),
+                           # (tng.x + tng.y, n_bnd_a, fill_rest),
+                           (n_bnd_x + n_bnd_y, tng.x + tng.y)
+                    ))
             rect.rotate()
             if tng.mergable(rect):
                 n_bnd_x = max(tng.x_pos + rect.b, bnd_x)
@@ -1002,7 +1048,13 @@ class Scene:
                     Motion(rect, tng.parent.assoc_rect,
                                  tng.parent.children.index(tng),
                                  True,
-                                 (n_bnd_a, tng.x + tng.y, fill_rest)))
+                           # (n_bnd_a, fill_rest, (tng.x + tng.y)**2, ),
+                           # (n_bnd_a + (tng.x + tng.y), fill_rest),
+                           # (n_bnd_a, tng.x + tng.y, fill_rest),
+                           # (tng.x + tng.y, n_bnd_a, fill_rest),
+                           # (n_bnd_x + n_bnd_y, fill_rest),
+                           (n_bnd_x + n_bnd_y, tng.x + tng.y)
+                    ))
             rect.rotate()
         return tbl
 
@@ -1013,9 +1065,9 @@ class Scene:
         return tbl
 
     def assess(self):
-        """
-        Returns a list, with index of splittable rectangle
-        and value as a list of feasible mergable positions.
+        """Returns a list, with index of splittable rectangle and value as a
+        list of feasible mergable positions.
+
         """
         mots = []
         rs_splittable = [r
@@ -1081,8 +1133,11 @@ class Scene:
             r_id = self.origin.assoc_rect.id
             self.pertubate(r_id)
 
-    def sort(self, keyattr='area'):
-        self.reservoir.sort(key=op.attrgetter(keyattr), reverse=True)
+    def sort(self, keyattr=None, key=lambda r: r.area):
+        if keyattr:
+            self.reservoir.sort(key=op.attrgetter(keyattr), reverse=True)
+        else:
+            self.reservoir.sort(key=key, reverse=True)
 
     def shuffle(self):
         random.shuffle(self.reservoir)
@@ -1210,7 +1265,6 @@ class Scene:
             return [tree[0]]
 
 
-
 class SceneDataModel(Scene):
     """ Simple wrapper of data model. """
 
@@ -1245,8 +1299,8 @@ class SceneDataModel(Scene):
         fig = plt.figure()
         ax = fig.add_subplot(111, aspect='equal')
         ax.set_title(
-            'Bounding area: {};    Fill rate: {:.2f}'.format(
-                self.object_value,
+            'Bounding : {} x {};    Fill rate: {:.2f}'.format(
+                *self.main_hanger.bounding,
                 sum(r.area for r in self.rects) / self.object_value),
             fontsize=13)
         # Find the relative tight boundary.
@@ -1277,6 +1331,7 @@ class SceneDataModel(Scene):
         attrs = ['area', 'width', 'height']
 
         fig = plt.figure()
+        fig.set_size_inches(25, 12)
 
         for i, attr in enumerate(attrs, start=1):
 
@@ -1336,3 +1391,4 @@ class Gen:
             h = random.randint(h_min, h_max)
             tps.append((w, h))
         return tps
+
