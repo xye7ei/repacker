@@ -28,16 +28,15 @@ As a simple example, an arrangement for 30 random generated rectangles is genera
 
 <p align="center">
     <img src="./sample1.png"
-    width="80%"
-    height="80%" />
+    width="70%"
+    height="70%" />
 </p>
 
 
 ## Highlight of this approach
-- No utilities from computational graphics or computational geometry are used, the underlying data structure resembles a Threaded-Tree.
-- This means, spatial restrictions can be detected by simple arithmetics, rather than applying geometric algorithms.
+- No utilities from computational graphics or computational geometry are used, since the underlying data structure resembles a Threaded-Tree, which is more abstract.
+- With this structure, spatial restrictions can be detected by simple arithmetics, rather than applying geometric algorithms.
 - This approach sacrifices completeness of by considering stacking direction merely upwardsrightwards. However, the results seem satisfying.
-- Greedy method comprises good solutions already. Extension with further optimization schemes is possible.
 - Much more performant implementation can be derived from this Python implementation with no dependencies required.
 
 
