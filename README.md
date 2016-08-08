@@ -5,16 +5,13 @@ This is a effective solver for 2D-rectangle-packing problem, which can find pote
 ### Problem description
 It is formalized as a typical optimization problem within such framework:
 
-- **Input**
-    + A set of rectangles
-    + (Any rectangle can be used with 90°-rotated version)
-- **Output**
-    + A complete arrangement of these rectangles in 2D space
-- **Constraints**
-    + Each rectangle is aligned to X and Y axis.
-    + No overlapping is allowed.
-- **Objective**
-    + Minimize the area of the axis-aligning bounding box covering all rectangles.
+| Item | Setting |
+|-|-|
+| *Input* | • A set of 2D rectangles <br/>  |
+| *Output* | • A complete arrangement of these rectangles in a 2D space |
+| *Constraints* | • Each rectangle is aligned to X and Y axis of the space. <br/> • No overlapping is allowed. |
+| *Objective* | • Minimize the area of the axis-aligning bounding box covering all rectangles. |
+| *Extension* |• Any rectangle can be replaced with its 90°-rotated version. |
 
 ### Analogy ###
 It is like given a large piece of cloth and required is a set of small pieces for some assembling work. The objective is to cut off these required pieces with least consumption of the large cloth.
@@ -35,7 +32,7 @@ As a simple example, an arrangement for 500 random generated rectangles is deliv
 
 With fill rate (aka. occupancy rate) more than 90% almost averagely, the results seem highly satisfying (w.R.t. the random generation of rectangle edge length with independent uniform distribution).
 
-The killer heuristics therein is the choice of the assessment function to be the *sum* of X and Y of the bouding box **(rather than the bounding area!)**. Rigorous proof is yet to be found.
+The killer heuristics therein is the choice of the state assessment function to be the *sum of width and height* of the bouding box (rather than the bounding *area*!) resulted from the action of installing a rectangle. Rigorous proof is yet to be found.
 
 
 ## Highlight of this approach
@@ -49,7 +46,9 @@ The killer heuristics therein is the choice of the assessment function to be the
 
 - When many rectangles are of the same size, which is the degeneracy case, the model suffers from the disability of arranging them like a "grid".
 
-- In this unbounded space, it seems there exists a tendency to arrange rectangles along the X or Y axis for some input with rectangles of near sizes. Though the quantitative result looks good, but setting constraints about boundaries should be made available to make the resulted bounding area more like a square.
+<!-- - In this unbounded space, it seems there exists a tendency to arrange rectangles along the X or Y axis for some input with rectangles of near sizes. Though the quantitative result looks good, but setting constraints about boundaries should be made available to make the resulted bounding area more like a square.
+
+-->
 
 <!--
 ## Detailed approach of solving
