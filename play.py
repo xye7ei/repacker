@@ -35,8 +35,9 @@ inp = [
 
 s = D()
 s.read_input(inp)
-s.sort()
-s.greedy_init()
+# s.sort()
+# s.greedy_init()
 
-with open('fig.png', 'wb') as o:
-	o.write(s.figure_state)
+with open('fig3s.png', 'wb') as o:
+	# o.write(s.figure_state)
+	o.write(s.figure_3schemes)

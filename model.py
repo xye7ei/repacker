@@ -1077,8 +1077,9 @@ class Scene:
         self.reservoir.extend(rs)
 
     def deconstruct_all(self):
-        r_id = self.origin.assoc_rect.id
-        self.pertubate(r_id)
+        if self.origin.assoc_rect is not None:
+            r_id = self.origin.assoc_rect.id
+            self.pertubate(r_id)
 
     def sort(self, keyattr='area'):
         self.reservoir.sort(key=op.attrgetter(keyattr), reverse=True)
@@ -1264,6 +1265,59 @@ class SceneDataModel(Scene):
         x_max = y_max = max(x_max, y_max)
         ax.set_xlim(0, x_max)
         ax.set_ylim(0, y_max)
+        with io.BytesIO() as f:
+            fig.savefig(f)
+            f.seek(0)
+            return f.read()
+
+    @property
+    def figure_3schemes(self):
+        import io
+        plt.rc('font', family='Times New Roman')
+        attrs = ['area', 'width', 'height']
+
+        fig = plt.figure()
+
+        for i, attr in enumerate(attrs, start=1):
+
+            # Compute
+            self.reset()
+            self.sort(attr)
+            self.greedy_init()
+
+            # Info
+            ax = fig.add_subplot(
+                1, len(attrs), i,
+                aspect='equal')
+            ax.set_title(
+                '\n'.join([
+                    'Key: {};'.format(attr),
+                    'Bounding: {} * {}; '.format(
+                        *self.main_hanger.bounding),
+                    'Fill rate: {:.2f}'.format(
+                        sum(r.area for r in self.rects) / self.object_value),
+                ]),
+                fontsize=13)
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+
+            # Find the relative tight boundary.
+            x_max = y_max = 0
+            for rect in self.rects:
+                ax.add_patch(
+                    pch.Rectangle(
+                        (rect.x1, rect.y1), rect.b, rect.h,
+                        edgecolor="#101010",
+                        alpha=0.9,
+                        facecolor=rect.color))
+                if rect.x2 > x_max:
+                    x_max = rect.x2
+                if rect.y2 > y_max:
+                    y_max = rect.y2
+            x_max = y_max = max(x_max, y_max)
+            ax.set_xlim(0, x_max)
+            ax.set_ylim(0, y_max)
+
         with io.BytesIO() as f:
             fig.savefig(f)
             f.seek(0)
