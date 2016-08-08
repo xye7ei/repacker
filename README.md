@@ -1,9 +1,10 @@
-# Rectangle packing solver
+rectpack
+=====
 
 This is a effective solver for 2D-rectangle-packing problem, which can find potential usage in various fields.
 
-### Problem description
-It is formalized as a typical optimization problem within such framework:
+# Target
+The target problem is formalized as a typical optimization problem within such framework:
 
 | Item | Setting |
 |---|---|
@@ -13,16 +14,12 @@ It is formalized as a typical optimization problem within such framework:
 | *Objective* | • Minimize the area of the axis-aligning bounding box covering all rectangles. |
 | *Extension* |• Any rectangle can be replaced with its 90°-rotated version. |
 
-### Analogy ###
 It is like given a large piece of cloth and required is a set of small pieces for some assembling work. The objective is to cut off these required pieces with least consumption of the large cloth.
 
-### Short explanation ###
-In this implementation the greedy method is applied for its satisfying effect. Further optimization schemes can be explored by making use of the adapt this model to interface with some optimizer's settings.
 
+# Sample output
 
-## Sample output
-
-As a simple example, an arrangement for 500 random generated rectangles is delivered by this solver, plotted with `pyplot`:
+As a simple example, an arrangement for 500 random generated rectangles (with uniform distribution for width/height length) is delivered by this solver, plotted with `pyplot`:
 
 <p align="center">
     <img src="./sample_figure.png"
@@ -30,19 +27,31 @@ As a simple example, an arrangement for 500 random generated rectangles is deliv
     height="70%" />
 </p>
 
-With fill rate (aka. occupancy rate) more than 90% almost averagely, the results seem highly satisfying (w.R.t. the random generation of rectangle edge length with independent uniform distribution).
-
-The killer heuristics therein is the choice of the state assessment function to be the *sum of width and height* of the bouding box (rather than the bounding *area*!) resulted from the action of installing a rectangle. Rigorous proof is yet to be found.
+Averagely, the fill-rate ranges above 90% for various input. But restriction can raise when the size of rectangles are near due to degeneracy of implemented methods.
 
 
-## Highlight of this approach
+# Approach
+
+Supported by a Threaded-Tree like data structure, the killer heuristics for this solver is the assessment function `F` guiding installation of each rectangle `r` at potential position `c`:
+
+``` python
+ F(r, c) = B(r, c).width + B(r, c).height
+```
+
+where `B(r, c)` is the new bounding box after this installation. Note the object value to be minimized is `B(r, c).width * B(r, c).height`, that is `B(r, c).area`, which is different.
+
+A possible interpretation for this assessment is that using `B.area` may lead to augmenting the rectangle stack to grow like a long-band, rather than grow like a square, since for a long-band-like stack, installation of new coming rectangle towards the short side comprises a large increment of object value.
+
+
+## Characteristics of this solver
+
 - No utilities from computational graphics or computational geometry are used, since the underlying data structure resembles a Threaded-Tree, which is more abstract.
 - With this structure, spatial restrictions can be detected by simple arithmetics, rather than applying geometric algorithms.
 - This approach sacrifices completeness of by considering stacking direction merely upwardsrightwards. However, the results seem satisfying.
 - Much more performant implementation can be derived from this Python implementation with no dependencies required.
 
 
-## Restrictions and TODOs
+# Restrictions and TODOs
 
 - When many rectangles are of the same size, which is the degeneracy case, the model suffers from the disability of arranging them like a "grid".
 

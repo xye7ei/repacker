@@ -127,8 +127,8 @@ class Turning:
     The 'Chain' of turnings exactly represent the 'outline' of the
     rectangle stack.
     
-    A scene model maintains a set of chains, each denoted by a
-    'hanger' turning.
+    A scene model maintains a set of chains, each represented by a
+    'hanger' turning (hanging a cycle-chain).
 
     """
 
@@ -156,9 +156,10 @@ class Turning:
         return
 
     def __repr__(self):
-        return \
-            'Hg_%s[%2d, %2d]' % (self.id, self.x, self.y) if self.is_hanger else \
-            "%s_%s[%2d, %2d]" % (self.bending, self.id, self.x, self.y)
+        if self.is_hander:
+            return 'Hg_%s[%2d, %2d]' % (self.id, self.x, self.y)
+        else:
+            return "%s_%s[%2d, %2d]" % (self.bending, self.id, self.x, self.y)
 
     def __getitem__(self, n):
         i = 0
@@ -180,8 +181,8 @@ class Turning:
         """
         def __init__(self, tng):
             self.turning = tng
-            self.x1 = tng.x_pos
-            self.y1 = tng.y_pos
+            self.x1 = tng.x_put
+            self.y1 = tng.y_put
             self.x2 = min(
                 tng.u_ext.r_ext.x if not tng.u_ext.is_hanger else tng.u_ext.x,
                 tng.slide_d().r_ext.x)
@@ -213,7 +214,8 @@ class Turning:
             if self.x_gap < rect.b <= self.b and \
                self.y_gap < rect.h <= self.h:
                 return self.area - rect.b * rect.h
-            else: return -1
+            else:
+                return -1
 
     @staticmethod
     def reset_counter():
@@ -246,7 +248,8 @@ class Turning:
         return self.parent.children.index(self)
 
     @property
-    def x_pos(self):
+    def x_put(self):
+        "X-value for installing a rectangle to this turning."
         if self.bending is 'T' and self.bending_before is 'F':
             return self.fllw.x
         elif self.bending is 'F':
@@ -255,7 +258,8 @@ class Turning:
             return self.x
 
     @property
-    def y_pos(self):
+    def y_put(self):
+        "Y-value for installing a rectangle to this turning."
         if self.bending is 'T' and self.bending_before is 'D':
             return self.prev.y
         elif self.bending is 'D':
@@ -264,12 +268,13 @@ class Turning:
             return self.y
 
     @property
-    def xy_pos(self):
-        return (self.x_pos, self.y_pos)
+    def xy_put(self):
+        "Coordinates for installing a rectangle to this turning."
+        return (self.x_put, self.y_put)
 
     @property
     def xy(self):
-        """ Representation of turning as its point coordinates. """
+        "Representation of turning as its point coordinates. "
         return (self.x, self.y)
 
     @property
@@ -332,9 +337,9 @@ class Turning:
 
     @property
     def bounder_turning_pair(self):
-        """
-        Assusme `self is a hanger.
-        Find maximum of turnings with x and y as bounder.
+        """Assusme `self` is a hanger, find maximum of turnings with x and y
+        as bounder.
+
         """
         curr = self.fllw
         bnd_tng_x = bnd_tng_y = curr
@@ -345,7 +350,7 @@ class Turning:
 
     @property
     def exts(self):
-        """Inspect the extents of this turning."""
+        "Inspect the extents of this turning."
         return list(zip(
                 ['Left ', 'Right', 'Up  ', 'Down'],
                 [self.l_ext, self.r_ext, self.u_ext, self.d_ext])
@@ -381,8 +386,7 @@ class Turning:
 
     @property
     def descedants(self):
-        """Underlined topological sort.  All descedants are PARENT turnings,
-        which lie not on the outline.
+        """Descedants are PARENT turnings, which lie not on the outline.
 
         """
         que_trav = [self] ; stk_split = []
@@ -401,6 +405,7 @@ class Turning:
         return stk_split
 
     def slide_l(self, until=-1):
+        "Detect how far a rectangle can slide leftwards."
         p = self
         # What if p.l_ext.prev is hanger AND p.l_ext.prev == p.y ?
         # Hanger is excluded.
@@ -412,6 +417,7 @@ class Turning:
         return p.l_ext          # Only slide, not iterate!
 
     def slide_d(self, until=-1):
+        "Detect how far a rectangle can slide downwards."
         p = self
         # while p.bending is 'D' and \
         while p.d_ext.fllw.x == p.x and \
@@ -421,14 +427,14 @@ class Turning:
         return p.d_ext
 
     def chain_next(self, nt):
-        """Mutually chain `self and `nt.
-        !! How to handle overlapped turnings?
-        This may happen when e.g. 4 * (10*10) Rectangles are
-        juxidated.
+        """Chain `self` and `nt`.
+
+        !! How to handle overlapping turnings? This may happen when
+        e.g. 4 * (10*10) Rectangles are juxtaposed.
+
         """
         self.fllw = nt
         nt.prev = self
-        return
 
     def print_map(self):
         th = "\t".join([" ID  |", "L", "R", "U", "D",]) + "\n"
@@ -440,7 +446,6 @@ class Turning:
         ])
         print(th)
         print(tb)
-        return
 
     @staticmethod
     def _update_left_right(lft, y_stop, rgt):
@@ -492,13 +497,19 @@ class Turning:
             return False
         else:
             # Case 1: Same x-level with previous;
-            # Case 2: Same y-level with fllw;
+            # Case 2: Same y-level with follow;
             # Case 3: Two non-consecutive turnings are of identical xy,
-            #       i.e. C-jaw-shape.
-            return \
-                self.fllw.x != self.x and self.prev.y != self.y and \
-                self.l_ext.prev.xy != self.xy and self.d_ext.fllw.xy != self.xy and \
-                self.frame.fill_rest_of(rect) >= 0
+            #         i.e. C-jaw-shape.
+            # return \
+            #     self.fllw.x != self.x and self.prev.y != self.y and \
+            #     self.l_ext.prev.xy != self.xy and self.d_ext.fllw.xy != self.xy and \
+            #     self.frame.fill_rest_of(rect) >= 0
+            if (self.fllw.x != self.x and self.prev.y != self.y) and \
+               (self.l_ext.prev.xy != self.xy and self.d_ext.fllw.xy != self.xy) and \
+               (self.frame.fill_rest_of(rect) >= 0):
+                return True
+            else:
+                return False
 
     def merge(self, rect, update=True):
         if not self.mergable(rect):
@@ -508,8 +519,8 @@ class Turning:
         rect.put_at(self)
         self.assoc_rect = rect
 
-        nt1 = Turning(self.x_pos, self.y_pos + rect.h, self)
-        nt2 = Turning(self.x_pos + rect.b, self.y_pos, self)
+        nt1 = Turning(self.x_put, self.y_put + rect.h, self)
+        nt2 = Turning(self.x_put + rect.b, self.y_put, self)
         nt1.parent = nt2.parent = self
 
         self.children.extend([nt1, nt2])
@@ -556,6 +567,7 @@ class Turning:
             self.bending_before = 'L'
             # self.l_ext.bending_before = 'L' # Handle when self.l_ext.xy = self.xy
             pass
+
         elif self.bending is 'F':
             assert self.d_ext is self
             # Must chain first, then update.
@@ -568,6 +580,7 @@ class Turning:
             if update:
                 self._update_left_right(self.prev, self.y, self)
                 self._update_down_up(self.fllw, self.x, self)
+
         elif self.bending is 'D':
             assert self.l_ext is self
             self.slide_d().chain_next(self)
@@ -577,19 +590,19 @@ class Turning:
             if update:
                 self._update_left_right(self.prev, self.y, self)
                 self._update_down_up(self.fllw, self.x, self)
-        else: pass
+
+        else:
+            pass
 
         # For error debugging. After merging, all extents must be in
         # the same cycle except the hanger.
-        Turning.check_cycle(self, nt1.prev, rect)
-        if self.is_hanger:
-            Turning.check_cycle(self, self, rect)
-        return
+        # Turning.check_cycle(self, nt1.prev, rect)
+        # if self.is_hanger:
+        #     Turning.check_cycle(self, self, rect)
 
     def merge_rotate(self, rect):
         rect.rotate()
         self.merge(rect)
-        return
 
     @staticmethod
     def check_cycle(at, tng, rect, info='MERGE'):
@@ -629,8 +642,8 @@ class Turning:
                 nt1.fllw is nt2 and \
                 nt2.prev is nt1 and \
                 nt1.children == nt2.children == [] # and \
-                # nt1.x is self.x_pos and \
-                # nt2.y is self.y_pos
+                # nt1.x is self.x_put and \
+                # nt2.y is self.y_put
         else:
             return False
 
@@ -784,8 +797,8 @@ class Rectangle:
             self.rotate()
 
     def put_at(self, tng):
-        self.x1 = tng.x_pos
-        self.y1 = tng.y_pos
+        self.x1 = tng.x_put
+        self.y1 = tng.y_put
         self.turning = tng
 
     def take_off(self):
@@ -1023,8 +1036,8 @@ class Scene:
         for tng in hg.cycle:
             # if tng is not rect.turning_before:
             if tng.mergable(rect):
-                n_bnd_x = max(tng.x_pos + rect.b, bnd_x)
-                n_bnd_y = max(tng.y_pos + rect.h, bnd_y)
+                n_bnd_x = max(tng.x_put + rect.b, bnd_x)
+                n_bnd_y = max(tng.y_put + rect.h, bnd_y)
                 n_bnd_a = n_bnd_x * n_bnd_y
                 fill_rest = tng.frame.fill_rest_of(rect)
                 tbl.append(
@@ -1040,8 +1053,8 @@ class Scene:
                     ))
             rect.rotate()
             if tng.mergable(rect):
-                n_bnd_x = max(tng.x_pos + rect.b, bnd_x)
-                n_bnd_y = max(tng.y_pos + rect.h, bnd_y)
+                n_bnd_x = max(tng.x_put + rect.b, bnd_x)
+                n_bnd_y = max(tng.y_put + rect.h, bnd_y)
                 n_bnd_a = n_bnd_x * n_bnd_y
                 fill_rest = tng.frame.fill_rest_of(rect)
                 tbl.append(
@@ -1319,6 +1332,8 @@ class SceneDataModel(Scene):
         x_max = y_max = max(x_max, y_max)
         ax.set_xlim(0, x_max)
         ax.set_ylim(0, y_max)
+        ax.xaxis.set_ticks_position('none')
+        ax.yaxis.set_ticks_position('none')
         with io.BytesIO() as f:
             fig.savefig(f)
             f.seek(0)
