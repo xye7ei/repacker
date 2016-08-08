@@ -6,7 +6,7 @@ This is a effective solver for 2D-rectangle-packing problem, which can find pote
 It is formalized as a typical optimization problem within such framework:
 
 | Item | Setting |
-|-|-|
+|---|---|
 | *Input* | • A set of 2D rectangles <br/>  |
 | *Output* | • A complete arrangement of these rectangles in a 2D space |
 | *Constraints* | • Each rectangle is aligned to X and Y axis of the space. <br/> • No overlapping is allowed. |
