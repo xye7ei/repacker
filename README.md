@@ -1,4 +1,4 @@
-rectpack
+repacker
 =====
 
 This is a effective solver for 2D-rectangle-packing problem, which can find potential usage in various fields.
