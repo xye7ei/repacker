@@ -8,6 +8,79 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as pch
 
 
+class Record:
+    """ This class serves as an interface of formulation
+    of vector items for the optimizer, such that the optimizer
+    can choose item with respect to its
+    - feature
+    - value
+    and so on.
+    The classes who implement this class's methods can contain
+    further properties for the mutation(application/reversion)
+    of corresponded data model. """
+    def __init__(self, feature, value):
+        self._feature = feature
+        self._value = value
+    def __repr__(self):
+        return 'Feature: %s;  Value: %8.3f' % (self.feature, self.value)
+    def __getitem__(self, i):
+        """ Implement the interface of reading table contents.
+        For the optimizer, a vector of motions are indexed by
+        0 with 'id' and 1 with 'value'. """
+        if i == 0: return self.feature
+        else: return self.value
+    def __lt__(self, other):
+        """ Ordability:
+        `self.value may be a tuple. """
+        return self.value < other.value
+    def __le__(self, other):
+        return self.value <= other.value
+    def __gt__(self, other):
+        return other < self
+    def __ge__(self, other):
+        return other <= self
+
+    @property
+    def feature(self):
+        return self._feature
+    @property
+    def value(self):
+        return self._value
+
+
+
+class Motion(Record):
+    """ Extending a record class, which is to be accepted by
+    the optimizer. """
+    def __init__(self, rect, rect_paren, child, rotated, params):
+        super(Motion, self).__init__(
+            rect.id,
+            # Or apply some specified weight function.
+            # params[0] + params[1] / 10000.0)
+            # HOWTO define weight function to evaluate
+            # some state of the data model?
+            # Possible parameters:
+            # 0. Bounding size;
+            # 1. Fitting-grade in slot;
+            # 2. Location (x, y) of target turning;
+            # 3. Area of moved rectangle;
+            # 4. Whether inducing a new subhanger;
+            # ...
+            params[0] + params[1] + params[2] / 100.0)
+        self.rect = rect
+        self.rect_paren = rect_paren
+        self.child = child
+        self.rotated = rotated
+        self.params = params
+    def __repr__(self):
+        return 'R{0} TO R{1}.child:{2}, Params: {3}, Rotd: {4}'.format(
+            self.rect.id, self.rect_paren.id, self.child,
+            self.params, self.rotated)
+    @property
+    def target_turning(self):
+        return self.rect_paren.turning.children[self.child]
+
+
 class Turning:
     """
     `Turning is a custom type as component of the outline of stacked boxes.
