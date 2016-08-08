@@ -2,6 +2,7 @@ import json
 import pprint
 import pdb
 import random
+import math
 import operator as op
 
 import matplotlib.pyplot as plt
@@ -89,13 +90,13 @@ class Turning:
     be of four possibilities:
 
     > ( 0,-y) in, (+x, 0) out: L-Type (most common)
-    	-> A left wall down, a platform rightwards
+        -> A left wall down, a platform rightwards
     > ( 0,+y) in, (+x, 0) out: F-Type
-    	-> A right wall up, a platform rightwards
+        -> A right wall up, a platform rightwards
     > ( 0,-y) in, (-x, 0) out: D-Type
-    	-> A left wall down, a ceiling leftwards
+        -> A left wall down, a ceiling leftwards
     > ( 0,+y) in, (-x, 0) out: T-Type (only for hangers in this model)
-    	-> A right wall up, a ceiling rightwards
+        -> A right wall up, a ceiling rightwards
 
     Each `Turning maintains not only defines a (x, y) position `p, but also
     maintains information of extensions, which are a vertical and a
@@ -469,7 +470,7 @@ class Turning:
             # Case 1: Same x-level with previous;
             # Case 2: Same y-level with fllw;
             # Case 3: Two non-consecutive turnings are of identical xy,
-            # 		i.e. C-jaw-shape.
+            #       i.e. C-jaw-shape.
             return \
                 self.fllw.x != self.x and self.prev.y != self.y and \
                 self.l_ext.prev.xy != self.xy and self.d_ext.fllw.xy != self.xy and \
@@ -940,6 +941,20 @@ class Scene:
         x, y = self.main_hanger.bounding
         return x * y
 
+    @property
+    def color(self):
+        b, h = self.b, self.h
+        if b > h:
+            c = b / h
+        else:
+            c = - h / b
+        fei = math.atan(c)
+        red = int(50 * fei + 128) # max: 87
+        grn = int( 5 * fei + 128)
+        blu = int( 5 * fei + 128)
+        fill = "#%02X%02X%02X" % (red, grn, blu)
+        return fill
+
     def _assess_one_cycle_with_rect(self, hg, rect):
         """
         Suppose `rect is splitted out.
@@ -1045,7 +1060,7 @@ class Scene:
         # it's same-located exists in current outline.
         # Infomation
         self.apply_motion(mot)
-        return {'id' 	  : mot.rect.id,
+        return {'id'      : mot.rect.id,
                 'coords'  : mot.rect.xyxy,  }
 
     def pertubate(self, r_id):
@@ -1225,21 +1240,27 @@ class SceneDataModel(Scene):
     def figure_state(self):
         "Generate the figure for the current state as byte stream."
         import io
+        plt.rc('font', family='Times New Roman')
         fig = plt.figure()
         ax = fig.add_subplot(111, aspect='equal')
         ax.set_title(
-            'Bounding area: {}; Fill rate: {:.2f}'.format(
+            'Bounding area: {};    Fill rate: {:.2f}'.format(
                 self.object_value,
-                sum(r.area for r in self.rects) / self.object_value))
+                sum(r.area for r in self.rects) / self.object_value),
+            fontsize=13)
         # Find the relative tight boundary.
         x_max = y_max = 0
-        for x1, y1, x2, y2 in self.elements:
+        for rect in self.rects:
             ax.add_patch(
-                pch.Rectangle((x1, y1), x2-x1, y2-y1))
-            if x2 > x_max:
-                x_max = x2
-            if y2 > y_max:
-                y_max = y2
+                pch.Rectangle(
+                    (rect.x1, rect.y1), rect.b, rect.h,
+                    edgecolor="#101010",
+                    alpha=0.9,
+                    facecolor=rect.color))
+            if rect.x2 > x_max:
+                x_max = rect.x2
+            if rect.y2 > y_max:
+                y_max = rect.y2
         x_max = y_max = max(x_max, y_max)
         ax.set_xlim(0, x_max)
         ax.set_ylim(0, y_max)
