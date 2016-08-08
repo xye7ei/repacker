@@ -53,3 +53,5 @@ Temporary Items
 .ipython-history
 .ipynb*
 *Copy*
+*.html
+*.png
