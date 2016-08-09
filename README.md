@@ -30,12 +30,16 @@ This module can be used through command-line
 python repacker.py my_rects
 ```
 
-where `my_rects` is a file with multiple lines and each line is two integers seperated by space.
+or interactively like in [`InteractiveUsage.ipynb`](./InteractiveUsage.ipynb).
 
-The outputs is generated into file `my_rects_out` and shown by figure `my_rects_out.png` (see example file `my_rect_100`).
+### Inputs
 
-Alternatively, usage can be interactive like in [`InteractiveUsage.ipynb`](./InteractiveUsage.ipynb).
+Here `my_rects` is a file with multiple lines and each line is two integers seperated by space. No 3rd-party module is required for solving, but `matplotlib` is required for plotting the results like figures above.
 
+
+### Outputs
+
+The outputs is generated into file `my_rects_out` and shown by figure `my_rects_out.png`. See example file [`my_rects`](./my_rects) with 100 rectangle inside and the corresponding outputs.
 
 ## Problem revisited
 
