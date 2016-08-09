@@ -1,46 +1,55 @@
 repacker
 =====
 
-This is a effective solver for 2D-rectangle-packing problem, which can find potential usage in various fields.
+`repacker` is a highly effective solver for 2D-rectangle-packing problem supported by compact data structures and helpful heuristics.
 
-# Target
-The target problem is formalized as a typical optimization problem within such framework:
+### First view
+
+Given a set of 200 (random-generated) rectangles, `repacker` delivers an optimized packing plan like:
+
+<p>
+	<img src="./sample_figure_200.png" width="80%" height="80%" />
+</p>
+
+or with even more rectangles, say 500:
+
+<p>
+	<img src="./sample_figure_500.png" width="80%" height="80%" />
+</p>
+
+The fill-rate denotes how much we have made use of the space inside the bounding box. By some testing of this module, the fill-rate is averagely above 93% for various inputs<sup>[1]</sup>.
+
+<sub>[1]. Except when the sizes of many rectangles are same, which is the degeneracy case to be fixed in the future. </sub>
+
+
+### Problem revisited
+
+The 2D-rectangle-packing problem targeted here can be formalized as
 
 | Item | Setting |
 |---|---|
 | *Input* | • A set of 2D rectangles <br/>  |
-| *Output* | • A complete arrangement of these rectangles in a 2D space |
+| *Output* | • Arrangement of all these rectangles in a 2D space |
 | *Constraints* | • Each rectangle is aligned to X and Y axis of the space. <br/> • No overlapping is allowed. |
 | *Objective* | • Minimize the area of the axis-aligning bounding box covering all rectangles. |
 | *Extension* |• Any rectangle can be replaced with its 90°-rotated version. |
 
-It is like given a large piece of cloth and required is a set of small pieces for some assembling work. The objective is to cut off these required pieces with least consumption of the large cloth.
+The solution to this problem may find usage in various fields. For example, given a large plate of steel, we may be required to slice it into small rectangle pieces for future assembling work according to some engineering plot and hope to use this plate most economically.
 
 
-# Sample output
+## Approach
 
-As a simple example, an arrangement for 500 random generated rectangles (with uniform distribution for width/height length) is delivered by this solver, plotted with `pyplot`:
-
-<p align="center">
-    <img src="./sample_figure.png"
-    width="70%"
-    height="70%" />
-</p>
-
-Averagely, the fill-rate ranges above 90% for various input. But restriction can raise when the size of rectangles are near due to degeneracy of implemented methods.
-
-
-# Approach
-
-Supported by a Threaded-Tree like data structure, the killer heuristics for this solver is the assessment function `F` guiding installation of each rectangle `r` at potential position `c`:
+Supported by a Threaded-Tree like data structure, the killer heuristics for this solver is the assessment function `F` guiding installation of each rectangle `r` at potential position `c` during the greedy-installation process:
 
 ``` python
- F(r, c) = B(r, c).width + B(r, c).height
+F(r, c) = B.width + B.height
 ```
 
-where `B(r, c)` is the new bounding box after this installation. Note the object value to be minimized is `B(r, c).width * B(r, c).height`, that is `B(r, c).area`, which is different.
+where `B` is the new bounding box induced by the installation `(r, c)`. <sup>[2]</sup>
 
-A possible interpretation for this assessment is that using `B.area` may lead to augmenting the rectangle stack to grow like a long-band, rather than grow like a square, since for a long-band-like stack, installation of new coming rectangle towards the short side comprises a large increment of object value.
+<sub>[2]. Note the *objective function* to be minimized is `B.area == B.width * B.height`, which is different from `F`.</sub>
+
+A possible interpretation for this assessment is that using `B.area` may lead to augmenting the rectangle stack to grow like a long-band, rather than grow like a square, since for a long-band-like stack an installation of new coming rectangle by the short side comprises a large increment of objective function value.
 
 
 ## Characteristics of this solver
@@ -51,9 +60,9 @@ A possible interpretation for this assessment is that using `B.area` may lead to
 - Much more performant implementation can be derived from this Python implementation with no dependencies required.
 
 
-# Restrictions and TODOs
+## Restrictions and TODOs
 
-- When many rectangles are of the same size, which is the degeneracy case, the model suffers from the disability of arranging them like a "grid".
+- When many rectangles are of the same size, which is the degeneracy case, the model suffers from the disability of arranging them like a "grid". The fix requires clear definition for how to compute space restrictions and how to maintain the "Thread" when such cases raise.
 
 <!-- - In this unbounded space, it seems there exists a tendency to arrange rectangles along the X or Y axis for some input with rectangles of near sizes. Though the quantitative result looks good, but setting constraints about boundaries should be made available to make the resulted bounding area more like a square.
 
