@@ -26,7 +26,9 @@ The fill-rate denotes how much we have made use of the space inside the bounding
 
 This module can be used through command-line
 
-``` python repacker.py my_rects ```
+```
+python repacker.py my_rects
+```
 
 where `my_rects` is a file with multiple lines and each line is two integers seperated by space.
 
