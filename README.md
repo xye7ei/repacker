@@ -3,7 +3,7 @@ repacker
 
 `repacker` is a highly effective solver for 2D-rectangle-packing problem supported by compact data structures and helpful heuristics.
 
-### First view
+## First view
 
 Given a set of 200 (random-generated) rectangles, `repacker` delivers an optimized packing plan like:
 
@@ -22,7 +22,7 @@ The fill-rate denotes how much we have made use of the space inside the bounding
 <sub>[1]. Except when the sizes of many rectangles are same, which is the degeneracy case to be fixed in the future. </sub>
 
 
-### Problem revisited
+## Problem revisited
 
 The 2D-rectangle-packing problem targeted here can be formalized as
 
@@ -49,8 +49,34 @@ where `B` is the new bounding box induced by the installation `(r, c)`. <sup>[2]
 
 <sub>[2]. Note the *objective function* to be minimized is `B.area == B.width * B.height`, which is different from `F`.</sub>
 
-A possible interpretation for this assessment is that using `B.area` may lead to augmenting the rectangle stack to grow like a long-band, rather than grow like a square, since for a long-band-like stack an installation of new coming rectangle by the short side comprises a large increment of objective function value.
+A possible interpretation for the benifit of such assessment `F` is that using `B.area` instead may lead to the rectangle stack to grow like a long band, rather than grow like a square. Suppose we have already a "long" bounding box `B` where `B.height` is much greater than `B.width` and we are to install a rectangle `r` with roughly the size `d`, then installing `r` on the short side we get the rough increment of area
 
+```
+Δ(B.area) == d * B.height
+```
+
+which is much greater than installing on the short side where
+
+```
+Δ(B.area) == d * B.width
+```
+
+Consequently, following `r`s tend to always be installed on the long side when using `B.area` as the assessment function, so that the increment of objective value can be less.
+
+On the other side, with assessment `F` above, the increment becomes roughly
+
+```
+ΔF == d
+```
+
+no matter `r` is installed on the short or long side. This avoids the "long-band" problem using `B.area` and provides more spatial choices for rest installations with a square-like rectangle stack.
+
+
+<!--
+ That is, for a long-band-like stack,  an installation of new rectangle on the short side comprises a much greater increment of the bounding area than on the long side. Consequently the rest of rectangles tend to be installed further along the long side.
+
+On the other side, the above `F` avoids such problem by treating installation on long/short side almost equally.
+-->
 
 ## Characteristics of this solver
 
