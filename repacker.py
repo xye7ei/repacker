@@ -4,11 +4,8 @@ import random
 import math
 import operator as op
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as pch
 
-
-class Record:
+class Record(object):
     """This class serves as an interface between model and general
     optimizer scheme, such that the optimizer can choose item with
     respect to its feature or value.
@@ -96,7 +93,7 @@ class Motion(Record):
         return self.rect_paren.turning.children[self.child]
 
 
-class Turning:
+class Turning(object):
     """`Turning` is a custom type as component of the outline of stacked
     boxes.  It describes a vertical walk into and then a horizontal
     walk out of a turning point of outline (a wall and a
@@ -156,7 +153,7 @@ class Turning:
         return
 
     def __repr__(self):
-        if self.is_hander:
+        if self.is_hanger:
             return 'Hg_%s[%2d, %2d]' % (self.id, self.x, self.y)
         else:
             return "%s_%s[%2d, %2d]" % (self.bending, self.id, self.x, self.y)
@@ -727,7 +724,7 @@ class Turning:
         return
 
 
-class Rectangle:
+class Rectangle(object):
 
     x_dflt = 0 ; y_dflt = 0
 
@@ -868,7 +865,7 @@ class Rectangle:
         return fill
 
 
-class Scene:
+class Scene(object):
     """This object wraps a `hanger object, encapsulates method for state
     transferring in order to interface with generalized algorithms.
     This is also the object which plays the role of data model of
@@ -1307,14 +1304,19 @@ class SceneDataModel(Scene):
     @property
     def figure_state(self):
         "Generate the figure for the current state as byte stream."
+
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as pch
         import io
+
         plt.rc('font', family='Times New Roman')
         fig = plt.figure()
         ax = fig.add_subplot(111, aspect='equal')
         ax.set_title(
             'Bounding : {} x {};    Fill rate: {:.2f}'.format(
-                *self.main_hanger.bounding,
-                sum(r.area for r in self.rects) / self.object_value),
+                self.main_hanger.bounding[0],
+                self.main_hanger.bounding[1],
+                self.value_lower_bound / self.object_value),
             fontsize=13)
         # Find the relative tight boundary.
         x_max = y_max = 0
@@ -1342,6 +1344,10 @@ class SceneDataModel(Scene):
     @property
     def figure_3schemes(self):
         import io
+
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as pch
+
         plt.rc('font', family='Times New Roman')
         attrs = ['area', 'width', 'height']
 
@@ -1392,13 +1398,24 @@ class SceneDataModel(Scene):
             fig.savefig(f)
             f.seek(0)
             return f.read()
+    
+    def greedy_solve(self):
+        self.greedy_init()
+
+    # @staticmethod
+    # def solve(tps, sortkey=lambda rect: rect.width):
+    #     s = SceneDataModel()
+    #     s.read_input(tps)
+    #     s.sort(key=sortkey)
+    #     s.greedy_solve()
+    #     return s
 
 
 class Gen:
 
     @staticmethod
     def gen_inp(N, w_min=10, w_max=100, h_min=10, h_max=100):
-        """Generate a series of tuples randomly for reading into model."""
+        """Generate a list of tuples randomly for reading into model."""
         import random
         tps = []
         for _ in range(N):
@@ -1406,4 +1423,61 @@ class Gen:
             h = random.randint(h_min, h_max)
             tps.append((w, h))
         return tps
+
+    @staticmethod
+    def from_file(filename):
+        """Read from a file with each line as two integers. Returns a list of tuples.
+
+        """
+        inp = []
+        with open(filename, 'r') as o:
+            lns = o.readlines()
+        for l, ln in enumerate(lns):
+            if ln and not ln.startswith('#'):
+                if ln.startswith('('):
+                    assert ln.endswith(')'), 'Unmatched parenthesis at line {}'.format(l)
+                    ln = ln[:-1]
+                bh_txt = ln.split()
+                if len(bh_txt) == 2:
+                    b, h = bh_txt
+                    inp.append((int(b), int(h)))
+        return inp
+
+
+def solve_file(filename, key='area'):
+
+    # Parse file
+    inp = Gen.from_file(filename)
+
+    # Init and solve
+    s = SceneDataModel()
+    s.read_input(inp)
+    s.sort(key)
+    s.greedy_init()
+    oup = [(r.id, r.b, r.h, (r.x1, r.y1), (r.x2, r.y2), r.is_rotated) for r in s.rects]
+
+    # Output
+    with open(filename + '_out', 'w') as o:
+        cnt = '# (ID, width, height, (x1, y1), (x2, y2), rotated)\n'
+        cnt += '\n'.join(map(str, oup))
+        o.write(cnt)
+
+    try:
+        fig = s.figure_state
+        with open(filename + '_out.png', 'wb') as o:
+            o.write(fig)
+    except ImportError as e:
+        # import warnings
+        # warnings.warn('matplotlib unavailable. No figure generated.')
+        # print(e)
+        print('Module matplotlib unavailable. No figure generated.')
+
+    return
+
+
+if __name__ == '__main__':
+    import sys
+    f = sys.argv[1]
+    solve_file(f)
+    print('Solution done.\n')
 

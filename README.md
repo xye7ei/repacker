@@ -1,7 +1,7 @@
 repacker
 =====
 
-`repacker` is a highly effective solver for 2D-rectangle-packing problem supported by compact data structures and helpful heuristics.
+`repacker` is a highly effective solver for 2D-rectangle-packing problem (which is tricky to solve straighforwardly) supported by compact data structures and helpful heuristics.
 
 ## First view
 
@@ -20,6 +20,19 @@ or with even more rectangles, say 500:
 The fill-rate denotes how much we have made use of the space inside the bounding box. By some testing of this module, the fill-rate is averagely above 93% for various inputs<sup>[1]</sup>.
 
 <sub>[1]. Except when the sizes of many rectangles are same, which is the degeneracy case to be fixed in the future. </sub>
+
+
+## Usage
+
+This module can be used through command-line
+
+``` python repacker.py my_rects ```
+
+where `my_rects` is a file with multiple lines and each line is two integers seperated by space.
+
+The outputs is generated into file `my_rects_out` and shown by figure `my_rects_out.png` (see example file `my_rect_100`).
+
+Alternatively, usage can be interactive like in [`InteractiveUsage.ipynb`](./InteractiveUsage.ipynb).
 
 
 ## Problem revisited
@@ -41,7 +54,7 @@ The solution to this problem may find usage in various fields. For example, give
 
 Supported by a Threaded-Tree like data structure, the killer heuristics for this solver is the assessment function `F` guiding installation of each rectangle `r` at potential position `c` during the greedy-installation process:
 
-``` python
+```
 F(r, c) = B.width + B.height
 ```
 
