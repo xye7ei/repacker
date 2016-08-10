@@ -1491,13 +1491,13 @@ def solve_file(filename, keyattr='area', nofigure=False, outfile=None):
     # Output
     oup = [(r.id, r.b, r.h, (r.x1, r.y1), (r.x2, r.y2), r.is_rotated) for r in s.rects]
     out_cnt = '# (ID, width, height, (x1, y1), (x2, y2), rotated)\n'
-    out_cnt += '# Pre-sorting: {}'.format(keyattr)
+    out_cnt += '# Pre-sorting: "{}"\n'.format(keyattr)
     out_cnt += '\n'.join(map(str, oup))
     if not outfile:
         outfile = filename + '_out'
     with open(outfile, 'w') as o:
         o.write(out_cnt)
-        print('Output file:', outfile)
+        print('Output file: {}'.format(outfile))
 
     # Output figure
     if not nofigure:
