@@ -41,6 +41,18 @@ Here `my_rects` is a file with multiple lines and each line is two integers sepe
 
 The outputs is generated into file `my_rects_out` and shown by figure `my_rects_out.png`. See example file [`my_rects`](./my_rects) with 100 rectangle inside and the corresponding outputs.
 
+
+## Features of this solver
+
+- No utilities from computational graphics or computational geometry are used, since the underlying data structure resembles a Threaded-Tree, which is more abstract.
+- With this structure, spatial restrictions can be detected by simple arithmetics, rather than applying geometric algorithms.
+- This approach sacrifices completeness by considering to stack rectangles through "merging" their bottom-left corner into the stack
+
+<!--
+- More performant implementation can be derived from this Python implementation with no language-specific .
+-->
+
+
 ## Problem revisited
 
 The 2D-rectangle-packing problem targeted here can be formalized as
@@ -56,7 +68,7 @@ The 2D-rectangle-packing problem targeted here can be formalized as
 The solution to this problem may find usage in various fields. For example, given a large plate of steel, we may be required to slice it into small rectangle pieces for future assembling work according to some engineering plot and hope to use this plate most economically.
 
 
-## Approach
+## Approach details
 
 Supported by a Threaded-Tree like data structure, the killer heuristics for this solver is the assessment function `F` guiding installation of each rectangle `r` at potential position `c` during the greedy-installation process:
 
@@ -85,10 +97,10 @@ Consequently, following `r`s tend to always be installed on the long side when u
 On the other side, with assessment `F` above, the increment becomes roughly
 
 ```
-ΔF == d
+Δ(F) == d
 ```
 
-no matter `r` is installed on the short or long side. This avoids the "long-band" problem using `B.area` and provides more spatial choices for rest installations with a square-like rectangle stack.
+no matter `r` is installed on the short or long side. This avoids the "long-band" problem by using `B.area` and provides more spatial choices for rest installations with a square-like rectangle stack.
 
 
 <!--
@@ -96,13 +108,6 @@ no matter `r` is installed on the short or long side. This avoids the "long-band
 
 On the other side, the above `F` avoids such problem by treating installation on long/short side almost equally.
 -->
-
-## Characteristics of this solver
-
-- No utilities from computational graphics or computational geometry are used, since the underlying data structure resembles a Threaded-Tree, which is more abstract.
-- With this structure, spatial restrictions can be detected by simple arithmetics, rather than applying geometric algorithms.
-- This approach sacrifices completeness of by considering stacking direction merely upwardsrightwards. However, the results seem satisfying.
-- Much more performant implementation can be derived from this Python implementation with no dependencies required.
 
 
 ## Restrictions and TODOs

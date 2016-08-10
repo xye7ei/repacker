@@ -755,24 +755,43 @@ class Rectangle(object):
     @property
     def x2(self):
         return self.x1 + self.b
+
     @property
     def y2(self):
         return self.y1 + self.h
+
     @property
     def pos(self):
         return (self.x1, self.y1)
+
+    @property
+    def edge_sum(self):
+        return self.h + self.b
+
+    @property
+    def diag_len(self):
+        return (self.h**2 + self.b**2) ** 0.5
+
+    @property
+    def ratio(self):
+        return self.h / self.b
+
     @property
     def area(self):
         return self.b * self.h
+
     @property
     def child1(self):
         return self.turning.children[0]
+
     @property
     def child2(self):
         return self.turning.children[1]
+
     @property
     def splittable(self):
         return self.turning.splittable
+
     @property
     def xyxy(self):
         x = y = None
@@ -781,6 +800,7 @@ class Rectangle(object):
         else:
             x, y = Rectangle.x_dflt, Rectangle.y_dflt
         return (x, y, x + self.b, y + self.h)
+
     @property
     def xymid(self):
         return ((self.x1 + self.x2)/2, (self.y1 + self.y2)/2)
@@ -850,18 +870,28 @@ class Rectangle(object):
 
     @property
     def color(self):
+        # # Scheme 1
         b, h = self.b, self.h
-        if b > h:
-            c = b / h
-        else:
-            c = - h / b
-        # Property of `fei:
-        # if c -> +inf, then color stronger in red, and vice versa.
+        if b > h: c = b / h
+        else:     c = - h / b
         fei = math.atan(c)
-        red = int(50 * fei + 128) # max: 87
+        red = int(50 * fei + 128) # c[max] ~= 100, 50*atan(c) + 128 in [50, 206]
         grn = int( 5 * fei + 128)
         blu = int( 5 * fei + 128)
         fill = "#%02X%02X%02X" % (red, grn, blu)
+        # # Scheme 2
+        # ratio = self.b / self.h
+        # # rho = math.log2(ratio)
+        # rho = math.log(ratio, 1.5)
+        # # suppose rho in [log2(1/128), log2(128)] == [-7, 7]
+        # red = int(20 * rho + 128) # [-105 + 128, 105 + 128] == [23, 233]
+        # grn = int(2 * rho + 128)
+        # blu = int(2 * rho + 128)
+        # # No overflow
+        # red = min(255, red)
+        # grn = min(255, grn)
+        # blu = min(255, blu)
+        # fill = "#%02X%02X%02X" % (red, grn, blu)
         return fill
 
 
@@ -987,19 +1017,6 @@ class Scene(object):
         x, y = self.main_hanger.bounding
         return x * y
 
-    @property
-    def color(self):
-        b, h = self.b, self.h
-        if b > h:
-            c = b / h
-        else:
-            c = - h / b
-        fei = math.atan(c)
-        red = int(50 * fei + 128) # max: 87
-        grn = int( 5 * fei + 128)
-        blu = int( 5 * fei + 128)
-        fill = "#%02X%02X%02X" % (red, grn, blu)
-        return fill
 
     def _assess_one_cycle_with_rect(self, hg, rect):
         """Suppose `rect` is splitted out.  Find feasible merge of `rect` into
@@ -1158,99 +1175,99 @@ class Scene(object):
         else:
             self.random_merge()
 
-    def search_tree(self):
-        """ Construct a decision tree.
-        Use depth-first to increment/decrement stepwise.
-        `util is supposed to be a quasi-linked list, which
-        supports `prev and `next operations.
-        """
-        # tree: (mot, children, i_next, marked)
-        # Empty motion None should be legal to apply.
-        # Sugar:
-        util = self.reservoir
-        n = len(util)
-        def mark(t):
-            t[-1] = True
-        def explore(t):
-            mot, cs, i, m = t
-            return [[_, [], i+1, False] for _ in self._assess_cycles_with_rect(util[i])]
-        children =      lambda t: t[1]
-        marked =        lambda t: t[-1]
-        step =          lambda t: self.apply_motion(t[0])
-        backstep =      lambda t: self.revert_motion(t[0])
-        can_reach_more =lambda t: t[2] < n
-        # General tree construction scheme.
-        tree = [None, [], 0, False]
-        frontier = [ tree ]
-        while frontier:
-            t = frontier[-1]
-            if marked(t):
-                backstep(t)
-                frontier.pop()
-            elif can_reach_more(t):
-                mark(t)
-                step(t)
-                for tt in explore(t):
-                    frontier.append(tt)
-                    children(t).append(tt)
-            # `t is leaf...
-            else:
-                frontier.pop()
-        return tree
+    # def search_tree(self):
+    #     """ Construct a decision tree.
+    #     Use depth-first to increment/decrement stepwise.
+    #     `util is supposed to be a quasi-linked list, which
+    #     supports `prev and `next operations.
+    #     """
+    #     # tree: (mot, children, i_next, marked)
+    #     # Empty motion None should be legal to apply.
+    #     # Sugar:
+    #     util = self.reservoir
+    #     n = len(util)
+    #     def mark(t):
+    #         t[-1] = True
+    #     def explore(t):
+    #         mot, cs, i, m = t
+    #         return [[_, [], i+1, False] for _ in self._assess_cycles_with_rect(util[i])]
+    #     children =      lambda t: t[1]
+    #     marked =        lambda t: t[-1]
+    #     step =          lambda t: self.apply_motion(t[0])
+    #     backstep =      lambda t: self.revert_motion(t[0])
+    #     can_reach_more =lambda t: t[2] < n
+    #     # General tree construction scheme.
+    #     tree = [None, [], 0, False]
+    #     frontier = [ tree ]
+    #     while frontier:
+    #         t = frontier[-1]
+    #         if marked(t):
+    #             backstep(t)
+    #             frontier.pop()
+    #         elif can_reach_more(t):
+    #             mark(t)
+    #             step(t)
+    #             for tt in explore(t):
+    #                 frontier.append(tt)
+    #                 children(t).append(tt)
+    #         # `t is leaf...
+    #         else:
+    #             frontier.pop()
+    #     return tree
 
-    def backstep_tree(self, n):
-        """ The inserved version of search_tree, whereas search_tree
-        constructs decision tree with application/revert of merging
-        motions, backstep_tree constructs a tree with application/revert
-        of splitting motion.
-        *. Need the informative structure of motion be specified? """
-        # tree: (mot, children, i_next, marked)
-        # Empty motion None should be legal to apply.
-        # Sugar:
-        def mark(t):
-            t[-1] = True
-        # SHOULD DO on Scene level!
-        # No direct operations on rectangle or turning objects!!
-        def explore(t):
-            """ Structure of motion of splitting? """
-            i = t[2]
-            return [[(_.id, _.turning.parent.assoc_rect.id,
-                      _.turning.index_as_child, _.is_rotated),
-                     [], i+1, False]
-                    for _ in self.rects
-                    if _ not in self.reservoir and _.splittable]
-        def step(t):
-            mot = t[0]
-            if mot is not None:
-                self.split(mot[0]) # split at scene level!
-        def backstep(t):
-            mot = t[0]
-            if mot:
-                rid, rpid, c, rotd = mot
-                if rid is not None:
-                    if rotd: self.rects[rid].rotate()
-                    self.merge_by(rid, rpid, c) # merge at scene level
-        children =      lambda t: t[1]
-        can_reach_more =lambda t: t[2] < n
-        marked =        lambda t: t[3]
-        # General tree construction scheme.
-        tree = [None, [], 0, False]
-        frontier = [ tree ]
-        while frontier:
-            t = frontier[-1]
-            if marked(t):
-                backstep(t)
-                frontier.pop()
-            elif can_reach_more(t):
-                mark(t)
-                step(t)
-                for tt in explore(t):
-                    frontier.append(tt)
-                    children(t).append(tt)
-            # `t is leaf...
-            else:
-                frontier.pop()
-        return tree
+    # def backstep_tree(self, n):
+    #     """ The inserved version of search_tree, whereas search_tree
+    #     constructs decision tree with application/revert of merging
+    #     motions, backstep_tree constructs a tree with application/revert
+    #     of splitting motion.
+    #     *. Need the informative structure of motion be specified? """
+    #     # tree: (mot, children, i_next, marked)
+    #     # Empty motion None should be legal to apply.
+    #     # Sugar:
+    #     def mark(t):
+    #         t[-1] = True
+    #     # SHOULD DO on Scene level!
+    #     # No direct operations on rectangle or turning objects!!
+    #     def explore(t):
+    #         """ Structure of motion of splitting? """
+    #         i = t[2]
+    #         return [[(_.id, _.turning.parent.assoc_rect.id,
+    #                   _.turning.index_as_child, _.is_rotated),
+    #                  [], i+1, False]
+    #                 for _ in self.rects
+    #                 if _ not in self.reservoir and _.splittable]
+    #     def step(t):
+    #         mot = t[0]
+    #         if mot is not None:
+    #             self.split(mot[0]) # split at scene level!
+    #     def backstep(t):
+    #         mot = t[0]
+    #         if mot:
+    #             rid, rpid, c, rotd = mot
+    #             if rid is not None:
+    #                 if rotd: self.rects[rid].rotate()
+    #                 self.merge_by(rid, rpid, c) # merge at scene level
+    #     children =      lambda t: t[1]
+    #     can_reach_more =lambda t: t[2] < n
+    #     marked =        lambda t: t[3]
+    #     # General tree construction scheme.
+    #     tree = [None, [], 0, False]
+    #     frontier = [ tree ]
+    #     while frontier:
+    #         t = frontier[-1]
+    #         if marked(t):
+    #             backstep(t)
+    #             frontier.pop()
+    #         elif can_reach_more(t):
+    #             mark(t)
+    #             step(t)
+    #             for tt in explore(t):
+    #                 frontier.append(tt)
+    #                 children(t).append(tt)
+    #         # `t is leaf...
+    #         else:
+    #             frontier.pop()
+    #     return tree
 
     @staticmethod
     def best_in_search_tree(tree):
@@ -1321,16 +1338,28 @@ class SceneDataModel(Scene):
         # Find the relative tight boundary.
         x_max = y_max = 0
         for rect in self.rects:
+            # Plot rectangle
             ax.add_patch(
                 pch.Rectangle(
                     (rect.x1, rect.y1), rect.b, rect.h,
                     edgecolor="#101010",
                     alpha=0.9,
                     facecolor=rect.color))
+            # Plot text for rectangle
+            # ax.text(
+            #     (rect.x1 + rect.x2) // 2, 
+            #     (rect.y1 + rect.y2) // 2, 
+            #     str(rect.id),
+            #     color='#FFFFFF',
+            #     verticalalignment='center',
+            #     horizontalalignment='center',
+            #     fontsize=rect.area // 500,
+            # )
             if rect.x2 > x_max:
                 x_max = rect.x2
             if rect.y2 > y_max:
                 y_max = rect.y2
+
         x_max = y_max = max(x_max, y_max)
         ax.set_xlim(0, x_max)
         ax.set_ylim(0, y_max)
@@ -1444,7 +1473,10 @@ class Gen:
         return inp
 
 
-def solve_file(filename, key='area'):
+def solve_file(filename, keyattr='area', nofigure=False, outfile=None):
+
+    assert keyattr in dir(Rectangle), \
+        'Unknown attribute of Rectangle: {}'.format(keyattr)
 
     # Parse file
     inp = Gen.from_file(filename)
@@ -1452,32 +1484,66 @@ def solve_file(filename, key='area'):
     # Init and solve
     s = SceneDataModel()
     s.read_input(inp)
-    s.sort(key)
-    s.greedy_init()
-    oup = [(r.id, r.b, r.h, (r.x1, r.y1), (r.x2, r.y2), r.is_rotated) for r in s.rects]
+    # print('Solve with pre-sorting key: ', keyattr)
+    s.sort(keyattr)
+    s.greedy_solve()
 
     # Output
-    with open(filename + '_out', 'w') as o:
-        cnt = '# (ID, width, height, (x1, y1), (x2, y2), rotated)\n'
-        cnt += '\n'.join(map(str, oup))
-        o.write(cnt)
+    oup = [(r.id, r.b, r.h, (r.x1, r.y1), (r.x2, r.y2), r.is_rotated) for r in s.rects]
+    out_cnt = '# (ID, width, height, (x1, y1), (x2, y2), rotated)\n'
+    out_cnt += '# Pre-sorting: {}'.format(keyattr)
+    out_cnt += '\n'.join(map(str, oup))
+    if not outfile:
+        outfile = filename + '_out'
+    with open(outfile, 'w') as o:
+        o.write(out_cnt)
+        print('Output file:', outfile)
 
-    try:
-        fig = s.figure_state
-        with open(filename + '_out.png', 'wb') as o:
-            o.write(fig)
-    except ImportError as e:
-        # import warnings
-        # warnings.warn('matplotlib unavailable. No figure generated.')
-        # print(e)
-        print('Module matplotlib unavailable. No figure generated.')
-
-    return
+    # Output figure
+    if not nofigure:
+        try:
+            fig = s.figure_state
+            if not outfile:
+                outfig = filename + '_out.png'
+            else:
+                outfig = outfile + '.png'
+            with open(outfig, 'wb') as o:
+                o.write(fig)
+                print('Output figure:', outfig)
+        except ImportError as e:
+            # import warnings
+            # warnings.warn('matplotlib unavailable. No figure generated.')
+            print(e)
+            # print('Module matplotlib unavailable. No figure generated.')
 
 
 if __name__ == '__main__':
-    import sys
-    f = sys.argv[1]
-    solve_file(f)
+
+    from argparse import ArgumentParser
+    p = ArgumentParser(description='Specify solver options.')
+
+    p.add_argument(
+        'filename',
+        help=('File that stores rectangles'
+              'where each line is two integers separated by space.'))
+    p.add_argument(
+        '-o', '--outfile',
+        help=('Output file. '
+              'Default: postfixing "out" to input file'),
+        default='')
+    p.add_argument(
+        '-k', '--keyattr',
+        help=('Attribute for pre-sorting which should'
+              'c,n be one of [area, width, height, edge_sum]. '
+              'Default: "area"'),
+        default='area')
+    p.add_argument(
+        '-n', '--nofigure',
+        help=('No figure output.'),
+        action='store_true')
+
+    args = p.parse_args()
+    solve_file(**args.__dict__)
+
     print('Solution done.\n')
 
