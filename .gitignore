@@ -58,3 +58,4 @@ experiments/*
 .matplotlib/*
 fig*
 play*
+*.fuse*

@@ -77,8 +77,8 @@ class Corner(object):
 
             na.down = na           
             na.up = self.up        
-            nb.right = self.right  
             nb.left = nb           
+            nb.right = self.right  
 
             rect.xy = self.xy
 
@@ -95,8 +95,8 @@ class Corner(object):
             Corner.link(nb, nn)
             na.down = na           
             na.up = self.up        
-            nb.right = tar.right  
             nb.left = nb           
+            nb.right = tar.right  
 
             rect.xy = (self.x, tar.y)
 
@@ -113,8 +113,8 @@ class Corner(object):
             Corner.link(nb, tar)
             na.down = na           
             na.up = tar.up        
-            nb.right = self.right  
             nb.left = nb           
+            nb.right = self.right  
 
             rect.xy = (tar.x, self.y)
 
@@ -180,8 +180,7 @@ class Corner(object):
         # tour rightwards
         # update others' left pointing
         n = right0
-        # FIXME: either `na` or `n` may be None here!!!
-        while n.y <= na.y:      # `na` may be replaced during overlapping removal
+        while n.y <= na.y:
             n.left = nb
             n = n.right         # NEVER n == n.right
         assert n.y > nb.y + h
@@ -257,25 +256,27 @@ class Corner(object):
             assert 0
         return (dx, dy)
 
-    def can_plant(self, rect):
-        s = self.shape()
+    def can_plant(self, rect, x_max, y_max):
+        
         # Mind the gap when aligning.
+        s = self.shape()
         if s == 'D':
             dy = self.y - self.down.y
             if dy >= rect.h:
                 return False
-            # Avoid "slidable"
-            # if self.down.next.x == self.x:
-            #     return False
         elif s == 'F':
             dx = self.x - self.left.x
             if dx >= rect.b:
                 return False
-            # Avoid "slidable"
-            # if self.left.prev.y == self.y:
-            #     return False
+
+        # Not overstepping the bound!
+        if (self.x_put() + rect.b > x_max or
+            self.y_put() + rect.h > y_max):
+            return False
+    
         (sx, sy) = self.slot()
-        return sx > rect.b and sy > rect.h
+        # return sx > rect.b and sy > rect.h
+        return sx >= rect.b and sy >= rect.h
 
     def slot_fill_rate(self, rect):
         dx, dy = self.slot()
@@ -338,9 +339,15 @@ class Scene(object):
 
         w = self.top.walk()
         next(w)                 # ignore `top`
-        n_best = min((n for n in w if n.can_plant(rect)),
-                     key=assess)
-        return n_best
+
+        try:
+            n_best = min((n for n in w if n.can_plant(rect, self.x_max, self.y_max)),
+                        default=self.top.next,
+                        key=assess)
+            return n_best
+        except TypeError as e:
+            print('No viable corner to put a rectangle.')
+            print('NEED LOGGING HERE.')
 
     def validate_linking(self):
         for a, b in zip(self.top.walk(), self.top.next.walk()):
@@ -355,7 +362,7 @@ class Scene(object):
             for r in rects:
                 n = self.walk_find_best(r)
                 n.plant(r)
-                self.validate_linking()
+                # self.validate_linking()
                 sa += r.area
             x_bnd, y_bnd = self.xy_bounding()
             occu_rate = (sa) / (x_bnd * y_bnd)
@@ -378,7 +385,7 @@ def show(rects):
     import matplotlib.patches as pch
     import io
 
-    plt.rc('font', family='Consolas')
+    plt.rc('font')
     fig = plt.figure()
     ax = fig.add_subplot(111)
     for r in rects:
