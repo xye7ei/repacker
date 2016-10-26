@@ -62,11 +62,15 @@ class Corner(object):
         y_in = self.y - self.prev.y
         y_out = self.next.y - self.y
         # NOTE: x_out and y_in may be 0
+        # Very tricky to catogorize!
         if y_in < 0:
             if x_out < 0: return 'D'
             else:         return 'L'
+        elif y_in == 0:
+            if x_out < 0: return 'D'
+            else:         return 'L'
         else:
-            if x_out < 0: return 'T'
+            if x_out <= 0: return 'T'
             else:         return 'F'
 
     def x_put(self):
@@ -75,6 +79,7 @@ class Corner(object):
         elif s == 'D': return self.x
         elif s == 'F': return self.left.x
         else: raise
+
     def y_put(self):
         s = self.shape()
         if s == 'L': return self.y

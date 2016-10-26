@@ -1,6 +1,7 @@
 #include "repacker.cpp"
 
 #include <random>
+#include <algorithm>
 
 #include <GL/gl.h>
 #include <GL/glut.h>
@@ -8,7 +9,7 @@
 
 using namespace std;
 
-static list<Rectangle*> rs = {};
+static vector<Rectangle*> rs = {};
 
 static const int N = 50;
 static const int rMin = 1, rMax = 5;
@@ -25,10 +26,10 @@ void display()
 
             glColor3f(0.0, 0.0, 1.0);
 
-            float x1 = 1.0 * r->x / float(sBnd);
-            float y1 = 1.0 * r->y / float(sBnd);
-            float x2 = 1.0 * x1 + r->b / float(sBnd);
-            float y2 = 1.0 * y1 + r->h / float(sBnd);
+            float x1 = 10.0 * (r->x)      / float(sBnd);
+            float y1 = 10.0 * (r->y)      / float(sBnd);
+            float x2 = 10.0 * (x1 + r->b) / float(sBnd);
+            float y2 = 10.0 * (y1 + r->h) / float(sBnd);
 
             cout << x1 << ',' << y1 << endl;
 
@@ -66,15 +67,15 @@ int main(int argc, char *argv[])
         rs.push_back(new Rectangle(rMax/3*2, rMax/3*2));
     }
     
-    rs.sort(compRectangle);
+    sort(rs.begin(), rs.end(), compRectangle);
     
-    float fiRa = s->plan(rs);
+    double fiRa = s->plan(rs);
     auto xyBnd = s->xyBounding();
 
-    float b_over_h = float(xyBnd.first) / xyBnd.second;
+    double b_over_h = double(xyBnd.first) / double(xyBnd.second);
 
     cout << "Occupancy: " << fiRa << endl;
-    cout << "Eccentricity: " << b_over_h << endl;
+    cout << "Aspect ratio: " << b_over_h << endl;
 
     glutInit(&argc, argv);
     glutCreateWindow("Rectangle packing.");

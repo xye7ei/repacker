@@ -32,7 +32,9 @@ rs.sort(key=lambda r: (r.area, r.b), reverse=True)
 # rs.sort(key=lambda r: (r.area, r.b + r.h), reverse=True)
 
 s.prepare(rs)
-s.plan()
+rate = s.plan()
+
+print(rate)
 
 # BUGS:
 # - Dead loop
@@ -40,7 +42,7 @@ s.plan()
 # - Accessing attributes of None
 
 show(s)
-s.figure()
+# s.figure()
 
 # under Linux, use
 # time python3 xxx

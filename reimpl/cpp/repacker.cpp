@@ -1,5 +1,7 @@
 #include <iostream>
 #include <cassert>
+#include <stdexcept>
+
 #include <utility>
 #include <tuple>
 #include <vector>
@@ -42,14 +44,15 @@ public:
 
     inline char shape()
     {
-        // int xIn = x - prev->x;
         int yIn = y - prev->y;
         int xOut = next->x - x;
-        // int yOut = next->y - y;
+        // Very tricky to catogorize!
         if (yIn < 0)
             return xOut < 0 ? 'D' : 'L';
+        else if (yIn == 0)
+            return xOut < 0 ? 'D' : 'L';
         else
-            return xOut < 0 ? 'T' : 'F';
+            return xOut <= 0 ? 'T' : 'F';
     }
 
     Corner*
@@ -98,7 +101,7 @@ public:
             break;
         default:
             std::cout << "ERROR!" << std::endl;
-            throw 0;
+            throw std::invalid_argument("Shape failed in plant!");
         }
 
         // Drop overlapping points!
@@ -111,8 +114,8 @@ public:
         //     nb = nb->next;
         // }
  
-        Corner *up0 = up;
-        Corner *right0 = right;
+        Corner *up0 = na->up;
+        Corner *right0 = nb->right;
 
         // * na
         // tour leftwards
@@ -186,7 +189,7 @@ public:
             dy = left->up->y - y;
             break;
         default:
-            throw 0;
+            throw std::invalid_argument("Shape failed in calc slot!");
         }
         return std::pair<int, int>(dx, dy);
     }
@@ -195,7 +198,9 @@ public:
     {
         // Mind the gap.
         char s = shape();
-        if (s == 'D') {
+        if (s == 'T')
+            return false;
+        else if (s == 'D') {
             if (y - down->y >= rect->h)
                 return false;
         } else if (s == 'F') {
@@ -222,8 +227,8 @@ public:
 class Scene
 {
 public:
-    Corner *top;
-    Corner *ori;
+    Corner *top, *ori;
+    int xMax, yMax;
 
     Scene(int xMax, int yMax)
     {
@@ -238,6 +243,9 @@ public:
 
         ori->left = ori->down = ori;
         ori->up = ori->right = top;
+
+        this->xMax = xMax;
+        this->yMax = yMax;
     }
 
     inline std::pair <int, int>
@@ -258,18 +266,18 @@ public:
     Corner *
     walkFindBest(Rectangle *rect)
     {
-        std::pair<int, int> p = xyBounding();
-        int xBnd = p.first, yBnd = p.second;
+        auto xyBnd = xyBounding();
+        int xBnd = xyBnd.first, yBnd = xyBnd.second;
 
         // std::tuple<int, int, double> valBest =
         auto valBest = std::tuple<double, int, double>
-            (xBnd + yBnd,
-             xBnd + yBnd,
+            (xMax + yMax,
+             xMax + yMax,
              0.0);
 
         Corner *iter = top->next, *cBest = top->next;
         while (iter != top) {
-            if (iter->canPlant(rect, xBnd, yBnd)) {
+            if (iter->canPlant(rect, xMax, yMax)) {
                 int xBnd1 = iter->xPut() + rect->b;
                 if (xBnd1 < xBnd) xBnd1 = xBnd;
                 int yBnd1 = iter->yPut() + rect->h;
@@ -277,12 +285,8 @@ public:
                 double fr = iter->slotFillRate(rect);
 
                 auto val = std::tuple<double, int, double>
-                    // (xBnd1 + yBnd1,
-                    //  // iter->x + iter->y,
-                    //  std::abs(xBnd1 - yBnd1),
-                    //  -iter->slotFillRate(rect));
-                    (std::abs(xBnd1 - yBnd1),
-                     xBnd1 + yBnd1,
+                    (xBnd1 + yBnd1,
+                     iter->x + iter->y,
                      -fr);
 
                 if (val < valBest) {
@@ -311,6 +315,7 @@ public:
         auto xyBnd = xyBounding();
         double bndArea = double(xyBnd.first * xyBnd.second);
 
+        // Occupancy Rate
         return sArea / bndArea;
     }
 };
