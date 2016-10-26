@@ -1,6 +1,8 @@
 #include "repacker.cpp"
 
 // #include <list>
+#include <vector>
+#include <algorithm>
 #include <random>
 
 using namespace std;
@@ -8,7 +10,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
 
-    list<Rectangle*> rs = {};
+    vector<Rectangle*> rs = {};
     random_device r;
 
     default_random_engine el(r());
@@ -30,26 +32,14 @@ int main(int argc, char *argv[])
         rs.push_back(new Rectangle(66, 66));
     }
     
-    rs.sort(compRectangle);
+    sort(rs.begin(), rs.end(), compRectangle);
+
+    double fiRa = s->plan(rs);
+    auto xyBnd = s->xyBounding();
+    double b_over_h = double(xyBnd.first) / double(xyBnd.second);
     
-    // float sumA = 0;
-    // for(int i = 0; i < 100; i++) {
-    //     // cout << uniform_dist(el) << endl;
-    //     int b = uniform_dist(el);
-    //     int h = uniform_dist(el);
-    //     auto r1 = new Rectangle(b, h);
-    //     sumA += r1->area;
-    //     auto n = s->walkFindBest(r1);
-    //     n->plant(r1);
-    // }
-
-    // auto xyBnd = s->xyBounding();
-    // // cout << xyBnd.first << ' ' << xyBnd.second << endl;
-    // float fiRa = sumA / float(xyBnd.first * xyBnd.second);
-
-    float fiRa = s->plan(rs);
-
-    cout << fiRa << endl;
+    cout << "Occupancy: " << fiRa << endl;
+    cout << "Eccentricity: " << b_over_h << endl;
 
     return 0;
 }

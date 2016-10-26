@@ -2,8 +2,9 @@
 #include <cassert>
 #include <utility>
 #include <tuple>
-#include <list>
+#include <vector>
 
+#include <cmath>
 
 class Rectangle
 {
@@ -157,7 +158,6 @@ public:
             else n = n->right;
         }
 
-        // return std::make_pair(na, nb);
         return na;
     }
 
@@ -188,37 +188,32 @@ public:
         default:
             throw 0;
         }
-        return std::make_pair(dx, dy);
+        return std::pair<int, int>(dx, dy);
     }
 
-    inline bool canPlant(Rectangle *r, int xBnd, int yBnd)
+    bool canPlant(Rectangle *rect, int xMax, int yMax)
     {
         // Mind the gap.
         char s = shape();
         if (s == 'D') {
-            if (y - down->y > r->h)
-                return false;
-            if (down->next->x == x)
+            if (y - down->y >= rect->h)
                 return false;
         } else if (s == 'F') {
-            if (x - left->x > r->b)
-                return false;
-            if (left->prev->y == y)
+            if (x - left->x >= rect->b)
                 return false;
         }
 
-        if (xPut() + r->b > xBnd || yPut() + r->h > yBnd)
+        if (xPut() + rect->b > xMax || yPut() + rect->h > yMax)
             return false;
 
         std::pair <int, int> sxy = slot();
-        // return sxy.first > r->b && sxy.second > r->h;
-        return sxy.first >= r->b && sxy.second >= r->h;
+        return sxy.first >= rect->b && sxy.second >= rect->h;
     }
 
-    float slotFillRate(Rectangle *r)
+    double slotFillRate(Rectangle *rect)
     {
-        std::pair <int, int> sxy = slot();
-        return r->area / (sxy.first * sxy.second);
+        std::pair <int, int> sbh = slot();
+        return double(rect->area) / double(sbh.first * sbh.second);
     }
 
 };
@@ -257,7 +252,7 @@ public:
                 yBnd = iter->y;
             iter = iter->next;
         }
-        return std::make_pair(xBnd, yBnd);
+        return std::pair<int, int>(xBnd, yBnd);
     }
 
     Corner *
@@ -266,10 +261,11 @@ public:
         std::pair<int, int> p = xyBounding();
         int xBnd = p.first, yBnd = p.second;
 
-        // std::tuple<int, int, float> valBest =
-        auto valBest = std::make_tuple(xBnd + yBnd,
-                                       xBnd + yBnd,
-                                       0.0);
+        // std::tuple<int, int, double> valBest =
+        auto valBest = std::tuple<double, int, double>
+            (xBnd + yBnd,
+             xBnd + yBnd,
+             0.0);
 
         Corner *iter = top->next, *cBest = top->next;
         while (iter != top) {
@@ -278,11 +274,16 @@ public:
                 if (xBnd1 < xBnd) xBnd1 = xBnd;
                 int yBnd1 = iter->yPut() + rect->h;
                 if (yBnd1 < yBnd) yBnd1 = yBnd;
+                double fr = iter->slotFillRate(rect);
 
-                auto val =
-                    std::make_tuple(xBnd1 + yBnd1,
-                                    iter->x + iter->y,
-                                    -iter->slotFillRate(rect));
+                auto val = std::tuple<double, int, double>
+                    // (xBnd1 + yBnd1,
+                    //  // iter->x + iter->y,
+                    //  std::abs(xBnd1 - yBnd1),
+                    //  -iter->slotFillRate(rect));
+                    (std::abs(xBnd1 - yBnd1),
+                     xBnd1 + yBnd1,
+                     -fr);
 
                 if (val < valBest) {
                     valBest = val;
@@ -297,9 +298,9 @@ public:
         return cBest;
     }
 
-    float plan(std::list<Rectangle*> rects)
+    double plan(std::vector<Rectangle*> rects)
     {
-        float sArea = 0.0;
+        double sArea = 0.0;
 
         for(auto r : rects) {
             Corner *cBest = walkFindBest(r);
@@ -308,7 +309,7 @@ public:
         }
 
         auto xyBnd = xyBounding();
-        float bndArea = xyBnd.first * xyBnd.second;
+        double bndArea = double(xyBnd.first * xyBnd.second);
 
         return sArea / bndArea;
     }
@@ -319,5 +320,7 @@ bool compRectangle(Rectangle *r1, Rectangle *r2)
 {
     // return r1->area > r2->area;
     // return r1->b > r2->b;
-    return std::make_pair(r1->area, r1->b) > std::make_pair(r2->area, r2->b);
+    return
+        std::pair<int, int>(r1->area, r1->b) >
+        std::pair<int, int>(r2->area, r2->b);
 }

@@ -21,11 +21,15 @@ s = Scene(10000, 10000)
 top = s.top
 ori = top.next
 
-for r in rs:
-    n = s.walk_find_best(r)
-    n.plant(r)
+s.prepare(rs)
+
+# for r in rs:
+#     n = s.walk_find_best(r)
+#     n.plant(r)
+
+s.plan()
 
 # if __name__ == '__main__':
 #     main()
 
-show(rs)
+show(s)

@@ -1,3 +1,4 @@
+import preamble
 from repacker import *
 
 xm = ym = 100
@@ -40,7 +41,7 @@ assert n5.left == n5
 assert n5.down == n5
 assert n4.next == n5
 
-assert n5.can_plant(rs[3])
+assert n5.can_plant(rs[3], s.x_max, s.y_max)
 n7, n8 = n5.plant(rs[3])
 assert n7 == n4.next
 assert n8 == n7.next
@@ -52,8 +53,8 @@ assert n4.right == n7
 assert n4.slot() == (0, 90)
 
 assert n7.slot() == (90, 80)
-assert n7.can_plant(rs[4])
-assert n8.can_plant(rs[4])
+assert n7.can_plant(rs[4], s.x_max, s.y_max)
+assert n8.can_plant(rs[4], s.x_max, s.y_max)
 assert n8.slot() == (80, 90)
 
-show(rs)
+# show(rs)

@@ -1,8 +1,8 @@
+import preamble
 from repacker import *
 
 s = Scene(50, 50)
 top = s.top
-ori = top.next
 
 rs = [
     Rectangle(5, 5),
@@ -10,11 +10,13 @@ rs = [
     Rectangle(7, 7),
 ]
 
-n1, n2 = ori.merge(rs[0])
-n3, n4 = n1.merge(rs[1])
+s.prepare(rs)
+
+n1, n2 = s.top.next.plant(rs[0])
+n3, n4 = n1.plant(rs[1])
 
 # BUGGY:
-n5, n6 = n4.merge(rs[2])
+n5, n6 = n4.plant(rs[2])
 
 s.validate_linking()
-show(rs)
+show(s)
