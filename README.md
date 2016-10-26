@@ -25,19 +25,22 @@ The term *occupancy rate* denotes how much space inside the bounding box is fill
 Given a set of 200 (random-generated) rectangles, `repacker` delivers a highly optimized packing plan like:
 
 <p>
-	<img src="./sample_figure_200.png" width="80%" height="80%" />
+	<img src="./sample_figure_200.png" width="350" height="350" />
 </p>
 
-or with even more rectangles, say 1000:
+with 93.92% occupancy rate. Similarly, with even more rectangles, say 1000:
 
 <p>
-	<img src="./sample_figure_1000.png" width="80%" height="80%" />
+	<img src="./sample_figure_1000.png" width="450" height="450" />
 </p>
 
 <!-- <sup>[1]</sup>. -->
 
 <!-- <sub>[1]. Except when the sizes of many rectangles are same, which is the degeneracy case to be fixed in the future. </sub>
  -->
+
+solution achieves 95.62% occupancy rate.
+
 
 By some testing of this module, this rate ranges averagedly about 90% for various inputs with size more than 50.
 
@@ -120,14 +123,14 @@ no matter `r` is installed on the short or long side. This avoids the "long-band
 On the other side, the above `F` avoids such problem by treating installation on long/short side almost equally.
 -->
 
+<!--
+## restrictions and todos
 
-## Restrictions and TODOs
+- when many rectangles are of the same size, which is the degeneracy case, the model suffers from the disability of arranging them like a "grid". the fix requires clear definition for how to compute space restrictions and how to maintain the "thread" when such cases raise.
 
-- When many rectangles are of the same size, which is the degeneracy case, the model suffers from the disability of arranging them like a "grid". The fix requires clear definition for how to compute space restrictions and how to maintain the "Thread" when such cases raise.
+ - in this unbounded space, it seems there exists a tendency to arrange rectangles along the x or y axis for some input with rectangles of near sizes. though the quantitative result looks good, but setting constraints about boundaries should be made available to make the resulted bounding area more like a square.
 
-<!-- - In this unbounded space, it seems there exists a tendency to arrange rectangles along the X or Y axis for some input with rectangles of near sizes. Though the quantitative result looks good, but setting constraints about boundaries should be made available to make the resulted bounding area more like a square.
-
--->
+ -->
 
 <!--
 ## Detailed approach of solving
