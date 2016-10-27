@@ -14,7 +14,7 @@ The 2D-rectangle-packing problem targeted here can be literally formalized as
 | *Input* | • A set of 2D rectangles <br/>  |
 | *Output* | • Arrangement of all these rectangles in a 2D space |
 | *Constraints* | • Each rectangle is aligned to X and Y axis of the space. <br/> • No overlapping is allowed. |
-| *Objective* | • Minimize the area of the axis-aligning bounding box including all rectangles. |
+| *Objective* | • Minimize the area of the axis-aligning bounding box including all these rectangles. |
 
 The term *occupancy rate* denotes how much space inside the bounding box is filled by rectangles. It corresponds to exactly one objective value since the sum of rectangle areas are constant as given.
 
@@ -31,7 +31,7 @@ Given a set of 200 (random-generated) rectangles, `repacker` delivers a highly o
 with 93.92% occupancy rate. Similarly, with even more rectangles, say 1000:
 
 <p>
-	<img src="./sample_figure_1000.png" width="450" height="450" />
+	<img src="./sample_figure_1000.png" width="400" height="400" />
 </p>
 
 <!-- <sup>[1]</sup>. -->
@@ -39,10 +39,22 @@ with 93.92% occupancy rate. Similarly, with even more rectangles, say 1000:
 <!-- <sub>[1]. Except when the sizes of many rectangles are same, which is the degeneracy case to be fixed in the future. </sub>
  -->
 
+
 solution achieves 95.62% occupancy rate.
 
 
 By some testing of this module, this rate ranges averagedly about 90% for various inputs with size more than 50.
+
+
+## Performance
+
+The identical optimization scheme has been also implemented in *C++* for speedup, which gives a packing for ca. 6000 rectangles in ca. 10s time (many of them are of the same size and such degenerancy is properly handled, though not perfect).
+
+<p>
+    <img src="./cpp/test_rand_more.png" width="50%" height="50%" />
+</p>
+
+The performance of C++ seems blading, however the plotting functionality in C++ is still being experimented.
 
 
 ## Usage
@@ -84,6 +96,8 @@ The solution to this problem may find usage in various fields. For example, give
 
 ## Approach details
 
+### Objective value representing the bounding
+
 Supported by this *threaded quad-pointers* data structure, the killer heuristics for this solver is the assessment function `F` guiding installation of each rectangle `r` at potential position `c` during the greedy-installation process:
 
 ```
@@ -115,6 +129,19 @@ On the other side, with assessment `F` above, the increment becomes roughly
 ```
 
 no matter `r` is installed on the short or long side. This avoids the "long-band" problem by using `B.area` and provides more spatial choices for rest installations with a square-like rectangle stack.
+
+
+### Ordinal combination of further tie-breakers
+
+Since there may be multiple placements of one rectangle resulting in unchanged bounding value, the second/third objective component may play very important roles. For the purpose of *Best-Fit*:
+
+- Any corner corresponds to a "slot" for placing a rectangle. The fill-rate of such placement matters - the greater the better;
+
+- The absolute coordinate values of placement matters - the closer to the axes the placement happens, the better it is leaving more space for subsequent placements.
+
+
+There seems no rule-of-thumb to choose potential tie-breakers. It may be assumed the choice should be *adaptive to the distribution of given rectangle sizes*, which is yet to be explored systematically.
+
 
 
 <!--
