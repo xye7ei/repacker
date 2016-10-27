@@ -366,8 +366,8 @@ class Scene(object):
                     # rather than (x_bnd1 * y_bnd1) to avoid long-band stacking
                     # x_bnd1 / y_bnd1, # aspect ratio
                     # abs(x_bnd1 - y_bnd1),
-                    n.x + n.y,
-                    -fr)                  # NEGATIVE fill rate in any slot
+                    max(n.x, n.y), # p-1 distance from the origin
+                    -fr)           # NEGATIVE fill rate in any slot
 
         w = self.top.walk()
         next(w)                 # ignore `top`

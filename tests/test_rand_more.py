@@ -13,8 +13,9 @@ for _ in range(100):
         for _ in range(500)
     ]
 
-    rs.sort(key=lambda r: (r.area, r.b), reverse=True)
+    # rs.sort(key=lambda r: (r.area, r.b), reverse=True)
 
+    s.prepare(rs)
     s.plan(rs)
 
     gc.collect()
