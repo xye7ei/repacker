@@ -362,12 +362,16 @@ class Scene(object):
             y_bnd1 = max(n.y_put() + rect.h, y_bnd)
             fr = n.slot_fill_rate(rect)
             # Heuristics
-            return (x_bnd1 + y_bnd1,
-                    # rather than (x_bnd1 * y_bnd1) to avoid long-band stacking
-                    # x_bnd1 / y_bnd1, # aspect ratio
-                    # abs(x_bnd1 - y_bnd1),
-                    max(n.x, n.y), # p-1 distance from the origin
-                    -fr)           # NEGATIVE fill rate in any slot
+            return (
+                x_bnd1 + y_bnd1, # rather than (x_bnd1 * y_bnd1) to avoid long-band stacking
+                x_bnd1 * y_bnd1,
+                # x_bnd1 / y_bnd1 + y_bnd1 / x_bnd1, # aspect ratio
+                # abs(x_bnd1 - y_bnd1),
+                n.x + n.y,
+                # max(n.x, n.y), # p-1 distance from the origin
+                # min(n.x, n.y), # p-1 distance from the origin
+                -fr,
+            )           # NEGATIVE fill rate in any slot
 
         w = self.top.walk()
         next(w)                 # ignore `top`

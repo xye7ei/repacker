@@ -31,7 +31,10 @@ int main(int argc, char *argv[])
     
     sort(rs.begin(), rs.end(), [](auto r1, auto r2) {
                                    // return r1->area > r2->area;
-                                   return r1->b + r1->h > r2->b + r2->h;
+                                   // return r1->b + r1->h > r2->b + r2->h;
+                                   return
+                                       pair<int, int>(r1->b, r1->h) >
+                                       pair<int, int>(r2->b, r2->h);
                                });
 
     double fiRa = s.plan(rs);

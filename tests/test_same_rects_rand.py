@@ -8,7 +8,7 @@ rs = []
 for i in range(1, 15):
     rs += [
         Rectangle(i, i)
-        for _ in range(10)
+        for _ in range(30)
     ]
 
 

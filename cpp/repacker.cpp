@@ -274,8 +274,9 @@ public:
         int xBnd = xyBnd.first, yBnd = xyBnd.second;
 
         // std::tuple<int, int, double> valBest =
-        auto valBest = std::tuple<double, int, double>
+        auto valBest = std::tuple<int, int, int, double>
             (xMax + yMax,
+             xMax + yMax,
              xMax + yMax,
              0.0);
 
@@ -288,9 +289,10 @@ public:
                 if (yBnd1 < yBnd) yBnd1 = yBnd;
                 double fr = iter->slotFillRate(rect);
 
-                auto val = std::tuple<double, int, double>
+                auto val = std::tuple<int, int, int, double>
                     (xBnd1 + yBnd1,
-                     std::max(iter->x, iter->y),
+                     xBnd1 * yBnd1,// std::abs(xBnd1 - yBnd1),
+                     iter->x + iter->y,
                      -fr);
 
                 if (val < valBest) {
