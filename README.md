@@ -48,7 +48,7 @@ By some testing of this module, this rate ranges averagedly about 90% for variou
 
 ## Performance
 
-The identical optimization scheme has been also implemented in *C++* for speedup, which gives a packing for ca. 6000 rectangles in ca. 10s time (many of them are of the same size and such degenerancy is properly handled, though not perfect).
+The identical optimization scheme has been also implemented in *C++* for speedup, which gives a packing for ca. 6000 rectangles in ca. 5~6s time (many of them are of the same size and such degenerancy is properly handled, though not perfect).
 
 <p>
     <img src="./cpp/test_rand_more.png" width="50%" height="50%" />

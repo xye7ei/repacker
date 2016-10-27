@@ -41,6 +41,6 @@ int main(int argc, char *argv[])
     cout << "Occupancy: " << fiRa << endl;
     cout << "Aspect ratio: " << b_over_h << endl;
 
-    writeRectangles(rs, "test_rand_more.py");
+    // writeRectangles(rs, "test_rand_more.py");
     return 0;
 }
