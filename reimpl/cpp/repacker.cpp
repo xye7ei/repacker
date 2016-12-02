@@ -302,7 +302,7 @@ public:
         return cBest;
     }
 
-    double plan(std::vector<Rectangle*> rects)
+    double plan(std::vector<Rectangle*>& rects)
     {
         double sArea = 0.0;
 
