@@ -1,34 +1,34 @@
 repacker
 =====
 
-`repacker` is a highly effective solver for 2D-rectangle-packing problem  supported by linearized data structure and helpful heuristics.
+`repacker` is a highly effective solver for 2D-rectangle-packing problem based on a dedicated data structure and heuristics like greedy algorithm.
 
 <!-- In short, the packing problem requires to give a plan of placing rectangles in a 2D space, edges aligned, targeting the minimum bounding-box area. -->
 
 #### Problem revisited
 
-The 2D-rectangle-packing problem targeted here can be literally formalized as
+The 2D-rectangle-packing problem can be literally formalized as
 
 | Item | Setting |
 |---|---|
 | *Input* | • A set of 2D rectangles <br/>  |
-| *Output* | • Arrangement of all these rectangles in a 2D space |
-| *Constraints* | • Each rectangle is aligned to X and Y axis of the space. <br/> • No overlapping is allowed. |
-| *Objective* | • Minimize the area of the axis-aligning bounding box including all these rectangles. |
+| *Output* | • Arrangement of all these rectangles in a 2D space  |
+| *Constraints* | • Each rectangle is aligned to X and Y axes of the space. <br/> • No overlapping is allowed. |
+| *Objective* | • Minimize the area of the bounding box aligned to axes and including all rectangles. |
 
-The term *occupancy rate* denotes how much space inside the bounding box is filled by rectangles. It corresponds to exactly one objective value since the sum of rectangle areas are constant as given.
+The objective value is also denoted as *occupancy rate*.
 
 <!-- This may be tricky to solve straighforwardly. -->
 
 ## First view
 
-Given a set of 200 (random-generated) rectangles, `repacker` delivers a highly optimized packing plan like:
+Given a set of 200 (random-generated) example rectangles, `repacker` delivers a highly optimized packing plan like:
 
 <p>
 	<img src="./sample_figure_200.png" width="350" height="350" />
 </p>
 
-with 93.92% occupancy rate. Similarly, with even more rectangles, say 1000:
+with 93.92% occupancy rate. With another amount of example rectangles, say 1000:
 
 <p>
 	<img src="./sample_figure_1000.png" width="400" height="400" />
@@ -43,46 +43,49 @@ with 93.92% occupancy rate. Similarly, with even more rectangles, say 1000:
 solution achieves 95.62% occupancy rate.
 
 
-By some testing of this module, this rate ranges averagedly about 90% for various inputs with size more than 50.
+From testing of `repacker`, such rate is on average above 90% for input sets with size more than 50.
 
 
 ## Performance
 
-The identical optimization scheme has been also implemented in *C++* for speedup, which gives a packing for ca. 6000 rectangles in ca. 5~6s time (many of them are of the same size and such degenerancy is properly handled, though not perfect).
+The algorithm is firstly implemented in Python then ported to *C++*. The performance is heavily improved.
+Given ca. 6000 rectangles, C++ code produces a output within ca. 5~6 seconds.
 
 <p>
     <img src="./cpp/test_rand_more.png" width="50%" height="50%" />
 </p>
 
-The performance of C++ seems blading, however the plotting functionality in C++ is still being experimented.
+The performance of C++ code is surprisingly good, however I do not know yet how to plot the result conveniently using
+C++.
 
 
 ## Usage
 
-This module can be used through command-line
-
+The algorithm can be called via command-line
 ```
 python repacker.py <input-file> [<output-file>] [-n]
 ```
 
 where
 
-- `<input-file>` is text file as a list of 2-tuples in Python syntax. The name
+- `<input-file>` is text file as a list of 2-tuples in Python syntax, representing the sizes of the rectangles.
 
-- `<output-file` would be a name for the generated solution file, which is also a Python list in text. Auto-naming happens when it is not explicitly given (s. examples).
+- `<output-file` is the path to the solution file, which is a Python list.
 
-- `-n` means generating no figure for showing the solution.
+- `-n` means producing no figure for depicting the solution.
 
-
-* No 3rd-party module is required for solving, but module `PIL` is required for drawing the results like the figures above.
+[*] No 3rd-party module is required for solving, but module `PIL` is required for drawing the results like the figures above.
 
 
 ## Features of this solver
 
-- No utilities from computational graphics or computational geometry are used, since the underlying data structure is indeed a list. I personally name it *threaded quad-pointers*, which is a 1D linking of all *corners*.
-- With this structure, spatial restrictions can be detected by simple arithmetics, rather than applying geometric algorithms.
-- The complexity is roughly O(N²). In pure Python, input with 1000 rectangles can be solved within several seconds.
-- The heuristical approach for deciding optimal placement can be categorized as a combination of strategies of *Greedy*, *Bottom-Left*, *Best-Fit* etc, which have been explored by various literatures extensively.
+- No utilities from computational graphics or computational geometry are used, since the underlying data structure is indeed a list.
+ I personally name it *threaded quad-pointers*, which is a 1D list of all modelled rectangle *corners*.
+- With this structure, spatial relations can be computed via simple arithmetics, instead of any complicated geometric
+ algorithm.
+- The complexity is roughly O(N²). In pure Python, an input with 1000 rectangles can be solved within several seconds.
+- The heuristical approach for deciding optimal placement can be categorized as a combination of strategies of *Greedy*,
+ *Bottom-Left*, *Best-Fit*, which have been explored extensively in various literature.
 
 <!--
 - More performant implementation can be derived from this Python implementation with no language-specific .
@@ -98,49 +101,57 @@ The solution to this problem may find usage in various fields. For example, give
 
 ### Objective value representing the bounding
 
-Supported by this *threaded quad-pointers* data structure, the killer heuristics for this solver is the assessment function `F` guiding installation of each rectangle `r` at potential position `c` during the greedy-installation process:
+Based on the *threaded quad-pointers* data structure, instead of computing the occupancy rate i.e. the bounding box area,
+an alternative function `F` is proved to be more effective as the objective function.
+Given a rectangle `r` and potential placement of it at coordinate `c`,
 
 ```
-F(r, c) = B.width + B.height
+F(r, c) = B(r, c).width + B(r, c).height
 ```
 
-where `B` is the new bounding box induced by the placement `(r, c)`<sup>※</sup>.
+where `B` is the bounding box determined via placing `(r, c)`<sup>※</sup>.
 
-<sub>※. Note the *objective function* to be minimized is `B.area == B.width * B.height`, which is different from `F`.</sub>
-
-A possible interpretation for the benifit of such assessment `F` is that using `B.area` instead may lead to the rectangle stack to grow like a long band, rather than grow like a square. Suppose we have already a "long" bounding box `B` where `B.height` is much greater than `B.width` and we are to install a rectangle `r` with roughly the size `d`, then installing `r` on the short side we get the rough increment of area
+A possible interpretation for `F`'s benefit is that using `B.area` may lead to the rectangle cluster growing like a
+ long band, rather than growing like a box. Suppose we have already a "long" bounding box `B` where `B.height`
+ is much greater than `B.width` and we are to place a rectangle `r` with roughly the size `d`,
+ then placing `r` on the short leads to a huge increment of the bounding area, i.e.
 
 ```
 Δ(B.area) == d * B.height
 ```
 
-which is much greater than installing on the short side where
+which is much greater than placing on the short side where
 
 ```
 Δ(B.area) == d * B.width
 ```
 
-Consequently, following `r`s tend to always be installed on the long side when using `B.area` as the assessment function, so that the increment of objective value can be less.
+As a consequence, following the trend that `r` is always placed along the long side when using `B.area` as the
+evaluation function, the objective value gradually loses further chance to get improved.
 
-On the other side, with assessment `F` above, the increment becomes roughly
+In contrast, with `F`, the increment is roughly
 
 ```
 Δ(F) == d
 ```
 
-no matter `r` is installed on the short or long side. This avoids the "long-band" problem by using `B.area` and provides more spatial choices for rest installations with a square-like rectangle stack.
+no matter `r` is placed on the short side or the long side. This helps avoid the "long-stacking" problem effectively
+and provides more choices for rest placements since the bounding box is stably very close to a rectangle .
 
 
-### Ordinal combination of further tie-breakers
+### Including tie-breakers (2ndary objective function)
 
-Since there may be multiple placements of one rectangle resulting in unchanged bounding value, the second/third objective component may play very important roles. For the purpose of *Best-Fit*:
+Since there may be multiple placements of a rectangle resulting in bounding box size unchanged, the secondary
+ objective function plays very important role for breaking the tie. Considering the following *Best-Fit*:
 
-- Any corner corresponds to a "slot" for placing a rectangle. The fill-rate of such placement matters - the greater the better;
+- Any corner corresponds to a "slot" for placing a rectangle. The fill-rate of such slot matters -
+ the greater the better, meaning there are less holes in the stack;
 
-- The absolute coordinate values of placement matters - the closer to the axes the placement happens, the better it is leaving more space for subsequent placements.
+- The absolute coordinate values of placement matters - the closer the placement to the axes, the more space it leaves
+  for subsequent placements.
 
-
-There seems no rule-of-thumb to choose potential tie-breakers. It may be assumed the choice should be *adaptive to the distribution of given rectangle sizes*, which is yet to be explored systematically.
+There seems to be no rule-of-thumb choosing potential tie-breakers. Ideally could be, the choice of tie-breaker is
+ *adaptive to the distribution of given rectangle sizes*, which is yet to be explored systematically.
 
 
 
